@@ -1,0 +1,10 @@
+{
+  "name": "ClassConverter",
+  "servePort": 8000,
+  "partitions": {
+    "plugin": {
+      "path": "src",
+      "target": "StarterGui.QuentyClassConverter.Plugin"
+    }
+  }
+}

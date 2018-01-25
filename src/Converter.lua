@@ -11,14 +11,20 @@ Converter.ApiSettingCacheName = "AnaminusAPICache"
 Converter.MaxCacheSettingsTime = 60*60*24 -- 1 day
 Converter.SearchCache = false -- TODO: Try enabling cache
 Converter.ServiceNameMap = setmetatable({}, {
-	__index = function(self, ClassName)
-		local IsService = ClassName:find("Service$")
-		               or ClassName:find("Provider$")
-		               or ClassName:find("Settings$")
-		               or game:FindService(ClassName)
+	__index = function(self, className)
+		local isService = className:find("Service$")
+		               or className:find("Provider$")
+		               or className:find("Settings$")
 
-		self[ClassName] = IsService
-		return IsService
+		if not isService then
+			-- Try to find the service
+			pcall(function()
+				isService = game:FindService(className)
+			end)
+		end
+
+		self[className] = isService
+		return isService
 	end
 })
 

@@ -8,13 +8,13 @@ local HttpService = game:GetService("HttpService")
 local function TrimString(str, pattern)
 	pattern = pattern or "%s";
 	-- %S is whitespaces
-	-- When we find the first non space character defined by ^%s 
-	-- we yank out anything in between that and the end of the string 
-	-- Everything else is replaced with %1 which is essentially nothing  
+	-- When we find the first non space character defined by ^%s
+	-- we yank out anything in between that and the end of the string
+	-- Everything else is replaced with %1 which is essentially nothing
 
 	-- Credit Sorcus, Modified by Quenty
 	return (str:gsub("^"..pattern.."*(.-)"..pattern.."*$", "%1"))
-end 
+end
 
 local UIBase = {}
 UIBase.ClassName = "UIBase"
@@ -101,6 +101,18 @@ function Checkbox.new(Gui)
 	end)
 	self:UpdateRender()
 
+	self.Maid:GiveTask(self.Gui.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
+			self.Gui.BackgroundTransparency = 0
+		end
+	end))
+
+	self.Maid:GiveTask(self.Gui.InputEnded:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
+			self.Gui.BackgroundTransparency = 1
+		end
+	end))
+
 	return self
 end
 
@@ -181,7 +193,7 @@ end
 function DropDownButton:UpdateRender()
 	local Desired = Color3.new(1, 1, 1)
 	if self.IsSelected.Value then
-		Desired = Color3.new(90/255, 142/255, 243/255)			
+		Desired = Color3.new(90/255, 142/255, 243/255)
 	end
 
 	if self.MouseOver then
@@ -258,9 +270,7 @@ function DropDownFilter.new(Gui)
 	self.AutoselectTop = Signal.new()
 
 	self.Maid.VisibleChanged = self.VisibleChanged:connect(function(IsVisible, DoNotAnimate)
-		if IsVisible then
-			--self.Gui:CaptureFocus()
-		else
+		if not IsVisible then
 			self.Gui:ReleaseFocus(false)
 		end
 	end)
@@ -416,7 +426,7 @@ function DropDownPane.new(Gui)
 
 
 	self.Maid.AutoselectTop = self.FilterBox.AutoselectTop:connect(function()
-		if self.Buttons[1] then		
+		if self.Buttons[1] then
 			self.Selected.Value = self.Buttons[1]
 			self:Hide()
 		end
@@ -444,7 +454,7 @@ function DropDownPane:UpdateRender()
 	if self:IsVisible() then
 		self.Gui.Size = UDim2.new(self.Gui.Size.X, UDim.new(0, math.min(self.MaxHeight, YHeight + 80)))
 	else
-		self.Gui.Size = UDim2.new(self.Gui.Size.X, UDim.new(0, self.Gui.Parent.Size.Y.Offset))
+		self.Gui.Size = UDim2.new(self.Gui.Size.X, UDim.new(1, 0))
 	end
 	self.Container.Size = UDim2.new(self.Gui.Size.X, UDim.new(0, YHeight))
 end
@@ -458,7 +468,7 @@ function DropDownPane:GetButtonFromData(Data)
 
 	local Gui = self.Template:Clone()
 	Gui.Visible = false
-	Gui.Name = tostring(Data.ClassName) .. "Button"	
+	Gui.Name = tostring(Data.ClassName) .. "Button"
 	Gui.Parent = self.Template.Parent
 
 	local Button = DropDownButton.new(Gui)
@@ -547,35 +557,35 @@ function CheckboxPane:AddCheckbox(Data)
 
 	local CheckboxMaid = MakeMaid()
 
-	local Checkbox = Checkbox.new(Gui)
+	local checkbox = Checkbox.new(Gui)
 		:WithData(Data)
 		:WithRenderData({
 			Name = Data.Name;
 		})
-	CheckboxMaid.Checkbox = Checkbox
+	CheckboxMaid:GiveTask(checkbox)
 
-	CheckboxMaid.Changed = Checkbox.Checked.Changed:connect(function()
+	CheckboxMaid:GiveTask(checkbox.Checked.Changed:connect(function()
 		self.SettingsChanged:fire()
-	end)
+	end))
 
 	if Data.DefaultValue then
-		Checkbox.Checked.Value = Data.DefaultValue
+		checkbox.Checked.Value = Data.DefaultValue
 	end
 
-	Checkbox:Show()
+	checkbox:Show()
 
-	self.Maid[Checkbox] = CheckboxMaid
-	table.insert(self.Checkboxes, Checkbox)
+	self.Maid[checkbox] = CheckboxMaid
+	table.insert(self.Checkboxes, checkbox)
 
 	self:UpdateRender()
 
-	return Checkbox
+	return checkbox
 end
 
 function CheckboxPane:GetSettings()
 	local Settings = {}
-	for _, Checkbox in pairs(self.Checkboxes) do
-		Settings[Checkbox.Data.SerializeName] = Checkbox.Checked.Value
+	for _, checkbox in pairs(self.Checkboxes) do
+		Settings[checkbox.Data.SerializeName] = checkbox.Checked.Value
 	end
 	return Settings
 end
@@ -597,9 +607,9 @@ Pane.ClassName = "Pane"
 function Pane.new(Gui, Selection)
 	local self = setmetatable(UIBase.new(Gui), Pane)
 
-	self.Done = Signal.new()
+	-- self.Done = Signal.new()
 	self.ConversionStarting = Signal.new()
-
+	self.ConversionEnding = Signal.new()
 
 	self.Selection = Selection or error("No selection")
 	self.Content = self.Gui.Content
@@ -637,10 +647,10 @@ function Pane.new(Gui, Selection)
 		self:UpdateRender()
 	end)
 
-	self.Maid.ScreenGui = self.Gui.Parent
-	self.Maid.CloseButtonClick = self.Gui.Header.CloseButton.MouseButton1Click:connect(function()
-		self.Done:fire()
-	end)
+	-- self.Maid.ScreenGui = self.Gui.Parent
+	-- self.Maid.CloseButtonClick = self.Gui.Header.CloseButton.MouseButton1Click:connect(function()
+	-- 	self.Done:fire()
+	-- end)
 
 
 	self.Maid.RetryButton = self.RetryButton.MouseButton1Click:connect(function()
@@ -649,14 +659,9 @@ function Pane.new(Gui, Selection)
 		self:UpdateRender()
 	end)
 
-	self.Maid.SelectionChanged = self.Selection.SelectionChanged:connect(function()
+	self.Maid:GiveTask(self.DropDown.Pane.Selected.Changed:connect(function()
 		self:UpdateRender()
-	end)
-
-	self.Maid.SelectedClassChanged = self.DropDown.Pane.Selected.Changed:connect(function()
-		self:UpdateRender()
-	end)
-
+	end))
 
 	self.Maid.ConvertButtonClick = self.ConvertButton.MouseButton1Click:connect(function()
 		self:UpdateRender()
@@ -673,6 +678,16 @@ function Pane.new(Gui, Selection)
 		self.DropDown:SetVisible(IsVisible)
 
 		self:UpdateRender()
+
+		if IsVisible then
+			self.Maid.SelectionChangedEvent = self.Selection.SelectionChanged:connect(function()
+				if self:IsVisible() then
+					self:UpdateRender()
+				end
+			end)
+		else
+			self.Maid.SelectionChangedEvent = nil
+		end
 	end)
 
 	self.Maid.FilterChanged = self.DropDown.Pane.FilterBox.CurrentText.Changed:connect(function(CurrentText)
@@ -703,10 +718,10 @@ function Pane:UpdateRender()
 		self.WarningPane.Visible = true
 		self.Content.Visible = false
 
-		if not self.WasNoHttp then
-			self.WasNoHttp = true
-			self:SelectHttpService()
-		end
+		-- if not self.WasNoHttp then
+		-- 	self.WasNoHttp = true
+		-- 	self:SelectHttpService()
+		-- end
 
 		IsAvailable = false
 	else
@@ -785,6 +800,7 @@ function Pane:DoConversion()
 		end
 
 		self.Selection:Set(NewSelection)
+		self.ConversionEnding:fire()
 	else
 		print("[Converter] - No selection or class name")
 	end

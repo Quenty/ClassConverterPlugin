@@ -9,16 +9,18 @@ local HttpService = game:GetService("HttpService")
 local IS_DEBUG_MODE = script:IsDescendantOf(game)
 if IS_DEBUG_MODE then
 	warn("Starting plugin in debug mode")
+	while not Players.LocalPlayer do
+		wait(0.05)
+	end
 end
 
-local MakeMaid = require(script:WaitForChild("Maid")).MakeMaid
+
 local Converter = require(script:WaitForChild("Converter"))
 local UI = require(script:WaitForChild("UI"))
 local Signal = require(script:WaitForChild("Signal"))
 
 local ScreenGui = script.Parent:WaitForChild("ScreenGui")
 ScreenGui.Enabled = false
-local MainMaid = MakeMaid()
 
 local Selection do
 	if not IS_DEBUG_MODE then
@@ -87,76 +89,93 @@ if IS_DEBUG_MODE then
 	plugin = FakeMetatable.new(plugin)
 end
 
-local IsActive = false
-local Converter = Converter.new(IS_DEBUG_MODE)
+local converter = Converter.new(IS_DEBUG_MODE)
 	:WithPluginForCache(plugin)
 
-local function Deactivate(Button)
-	-- Deactivates the plugin	
-	MainMaid.ActiveMaid = nil
-	IsActive = false
-end
-
-local function Activate(Button)
+local screenGui
+do
 	-- Activates the plugin
-
-	local Maid = MakeMaid()
-	IsActive = true
-
-	local NewScreenGui = ScreenGui:Clone()
-	NewScreenGui.Enabled = true
-	NewScreenGui.Parent = IS_DEBUG_MODE and game.Players.LocalPlayer.PlayerGui or game.CoreGui
-
-	local MainUI = UI.new(NewScreenGui.Main, Selection)
-		:WithConverter(Converter)
-	Maid.MainUI = MainUI
-
-	Maid.Done = MainUI.Done:connect(function()
-		Deactivate(Button)
-	end)
-
-	if Button then
-		Button:SetActive(true)
+	if IS_DEBUG_MODE then
+		screenGui = Instance.new("ScreenGui")
+		screenGui.Name = "Converter"
+		screenGui.Parent = Players.LocalPlayer.PlayerGui
+		screenGui.Enabled = false
+	else
+		local info = DockWidgetPluginGuiInfo.new(
+			Enum.InitialDockState.Float,
+			false,
+			false,
+			250,
+			320,
+			200,
+			240
+		)
+		screenGui = plugin:CreateDockWidgetPluginGui("Quenty_Class_Converter", info)
+		screenGui.Title = "Quenty's Class Converter Plugin"
 	end
 
-	Maid.Cleanup = function()
-		if Button then
-			Button:SetActive(false)
+	local function initializeGui()
+		local main = ScreenGui.Main:Clone()
+		main.Parent = screenGui
+
+		local ui = UI.new(main, Selection)
+			:WithConverter(converter)
+
+		screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+			ui:SetVisible(screenGui.Enabled)
+			if not screenGui.Enabled then
+				ui.DropDown:SetVisible(false)
+			end
+		end)
+		ui:SetVisible(screenGui.Enabled)
+
+		if not IS_DEBUG_MODE then
+			local ChangeHistoryService = game:GetService("ChangeHistoryService")
+			ui.ConversionStarting:connect(function()
+				ChangeHistoryService:SetWaypoint("Conversion_" .. HttpService:GenerateGUID(true))
+			end)
+			ui.ConversionEnding:connect(function()
+				ChangeHistoryService:SetWaypoint("Conversion_" .. HttpService:GenerateGUID(true))
+			end)
+
+
+			screenGui.WindowFocusReleased:Connect(function()
+				ui.DropDown:SetVisible(false)
+			end)
 		end
-
-		IsActive = false
 	end
 
-	MainUI:Show()
-
-	if not IS_DEBUG_MODE then
-		local ChangeHistoryService = game:GetService("ChangeHistoryService")
-		MainUI.ConversionStarting:connect(function()
-			ChangeHistoryService:SetWaypoint("Conversion_" .. HttpService:GenerateGUID(true))
+	if screenGui.Enabled then
+		initializeGui()
+		return
+	else
+		-- Wait to load GUI
+		local connection
+		connection = screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+			connection:disconnect()
+			initializeGui()
 		end)
 	end
-
-	MainMaid.ActiveMaid = Maid
 end
-
 
 
 if not IS_DEBUG_MODE then
-	local Toolbar = plugin:CreateToolbar("Object")
+	local toolbar = plugin:CreateToolbar("Object")
 
-	local Button = Toolbar:CreateButton(
-		"Class Converter",
+	local button = toolbar:CreateButton(
+		"Class converter",
 		"Converts classes from one item to another",
 		"rbxassetid://906772526"
 	)
 
-	Button.Click:connect(function()
-		if not IsActive then
-			Activate(Button)
-		else
-			Deactivate(Button)
-		end
+	screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		button:SetActive(screenGui.Enabled)
+	end)
+	button:SetActive(screenGui.Enabled)
+
+	button.Click:connect(function()
+		screenGui.Enabled = not screenGui.Enabled
 	end)
 else
-	Activate()
+	screenGui.Enabled = true
 end

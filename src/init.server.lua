@@ -145,7 +145,6 @@ do
 		spawn(function()
 			initializeGui()
 		end)
-		return
 	else
 		-- Wait to load GUI
 		local connection

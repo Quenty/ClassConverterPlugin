@@ -1,4 +1,4 @@
---- Conversion plugin
+--- Class conversion plugin
 -- @author Quenty
 -- With help from: Badcc, Stravant, TreyReynolds
 
@@ -8,19 +8,15 @@ local HttpService = game:GetService("HttpService")
 
 local IS_DEBUG_MODE = script:IsDescendantOf(game)
 if IS_DEBUG_MODE then
-	warn("Starting plugin in debug mode")
+	warn("[Converter] - Starting plugin in debug mode")
 	while not Players.LocalPlayer do
 		wait(0.05)
 	end
 end
 
-
 local Converter = require(script:WaitForChild("Converter"))
 local UI = require(script:WaitForChild("UI"))
 local Signal = require(script:WaitForChild("Signal"))
-
-local ScreenGui = script.Parent:WaitForChild("ScreenGui")
-ScreenGui.Enabled = false
 
 local Selection do
 	if not IS_DEBUG_MODE then
@@ -103,7 +99,7 @@ do
 	else
 		local info = DockWidgetPluginGuiInfo.new(
 			Enum.InitialDockState.Float,
-			false,
+			true,
 			false,
 			250,
 			320,
@@ -115,7 +111,7 @@ do
 	end
 
 	local function initializeGui()
-		local main = ScreenGui.Main:Clone()
+		local main = script.Parent.ScreenGui.Main:Clone()
 		main.Parent = screenGui
 
 		local ui = UI.new(main, Selection)
@@ -146,7 +142,9 @@ do
 	end
 
 	if screenGui.Enabled then
-		initializeGui()
+		spawn(function()
+			initializeGui()
+		end)
 		return
 	else
 		-- Wait to load GUI
@@ -157,7 +155,6 @@ do
 		end)
 	end
 end
-
 
 if not IS_DEBUG_MODE then
 	local toolbar = plugin:CreateToolbar("Object")

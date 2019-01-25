@@ -169,7 +169,6 @@ if not IS_DEBUG_MODE then
 	screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
 		button:SetActive(screenGui.Enabled)
 	end)
-	--button:SetActive(screenGui.Enabled)
 
 	button.Click:connect(function()
 		screenGui.Enabled = not screenGui.Enabled

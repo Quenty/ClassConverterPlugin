@@ -99,8 +99,8 @@ do
 	else
 		local info = DockWidgetPluginGuiInfo.new(
 			Enum.InitialDockState.Float,
-			true,
 			false,
+			true,
 			250,
 			320,
 			200,
@@ -109,7 +109,9 @@ do
 		screenGui = plugin:CreateDockWidgetPluginGui("Quenty_Class_Converter", info)
 		screenGui.Title = "Quenty's Class Converter Plugin"
 	end
-
+	screenGui:BindToClose(function()
+		screenGui.Enabled = false
+	end)
 	local function initializeGui()
 		local main = script.Parent.ScreenGui.Main:Clone()
 		main.Parent = screenGui
@@ -167,7 +169,7 @@ if not IS_DEBUG_MODE then
 	screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
 		button:SetActive(screenGui.Enabled)
 	end)
-	button:SetActive(screenGui.Enabled)
+	--button:SetActive(screenGui.Enabled)
 
 	button.Click:connect(function()
 		screenGui.Enabled = not screenGui.Enabled

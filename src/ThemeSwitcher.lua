@@ -15,7 +15,7 @@ local LightColors = {
 
 	Text = Color3.fromRGB(40, 40, 40),
 	DropDownText = Color3.fromRGB(27, 42, 53),
-	DropDownAccent = Color3.fromRGB(0, 0, 0),
+	DropDownMouseOverLerp = Color3.fromRGB(0, 0, 0),
 	TextBoxText = Color3.fromRGB(49, 49, 49),
 
 	Line = Color3.fromRGB(230, 230, 230),
@@ -31,7 +31,7 @@ local DarkColors = {
 
 	Text = Color3.fromRGB(204, 204, 204),
 	DropDownText = Color3.fromRGB(191, 206, 217),
-	DropDownAccent = Color3.fromRGB(255, 255, 255),
+	DropDownMouseOverLerp = Color3.fromRGB(255, 255, 255),
 	TextBoxText = Color3.fromRGB(213, 213, 213),
 
 	Line = Color3.fromRGB(21, 21, 21),

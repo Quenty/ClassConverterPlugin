@@ -198,7 +198,7 @@ function DropDownButton:UpdateRender()
 	end
 
 	if self.MouseOver then
-		Desired = Desired:lerp(ThemeSwitcher.GetColorFor("DropDownAccent"), 0.05)
+		Desired = Desired:lerp(ThemeSwitcher.GetColorFor("DropDownMouseOverLerp"), 0.05)
 	end
 
 	self.Gui.BackgroundColor3 = Desired

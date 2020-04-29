@@ -3,6 +3,7 @@ local Signal = require(script.Parent:WaitForChild("Signal"))
 local ScrollingFrame = require(script.Parent:WaitForChild("ScrollingFrame"))
 local ValueObject = require(script.Parent:WaitForChild("ValueObject"))
 local IconHandler = require(script.Parent:WaitForChild("IconHandler"))
+local ThemeSwitcher = require(script.Parent:WaitForChild("ThemeSwitcher"))
 local HttpService = game:GetService("HttpService")
 
 local function TrimString(str, pattern)
@@ -191,13 +192,13 @@ function DropDownButton:GetData()
 end
 
 function DropDownButton:UpdateRender()
-	local Desired = Color3.new(1, 1, 1)
+	local Desired = ThemeSwitcher.GetColorFor("Background")
 	if self.IsSelected.Value then
-		Desired = Color3.new(90/255, 142/255, 243/255)
+		Desired = ThemeSwitcher.GetColorFor("Selected")
 	end
 
 	if self.MouseOver then
-		Desired = Desired:lerp(Color3.new(0, 0, 0), 0.05)
+		Desired = Desired:lerp(ThemeSwitcher.GetColorFor("DropDownMouseOverLerp"), 0.05)
 	end
 
 	self.Gui.BackgroundColor3 = Desired
@@ -330,9 +331,9 @@ end
 
 function DropDownFilter:UpdateRender()
 	if self.MouseOver then
-		self.Background.BackgroundColor3 = Color3.new(0.95, 0.95, 0.95)
+		self.Background.BackgroundColor3 = ThemeSwitcher.GetColorFor("BackgroundOnHover")
 	else
-		self.Background.BackgroundColor3 = Color3.new(1, 1, 1)
+		self.Background.BackgroundColor3 = ThemeSwitcher.GetColorFor("Background")
 	end
 
 	if not self.Gui:IsFocused() then

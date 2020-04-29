@@ -293,7 +293,6 @@ function ScrollingFrame:AddScrollbarFromContainer(Container)
 	local ScrollBar = Instance.new("ImageButton")
 	ScrollBar.Size = UDim2.new(1, 0, 0, 100)
 	ScrollBar.Name = "ScrollBar"
-	ScrollBar.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
 	ScrollBar.BorderSizePixel = 0
 	ScrollBar.Image = ""
 	ScrollBar.Parent = Container

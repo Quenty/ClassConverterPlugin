@@ -19,6 +19,7 @@ end
 local Converter = require(script:WaitForChild("Converter"))
 local UI = require(script:WaitForChild("UI"))
 local Signal = require(script:WaitForChild("Signal"))
+local ThemeSwitcher = require(script:WaitForChild("ThemeSwitcher"))
 
 local Selection do
 	if not IS_DEBUG_MODE then
@@ -109,6 +110,7 @@ do
 			240
 		)
 		screenGui = plugin:CreateDockWidgetPluginGui("Quenty_Class_Converter", info)
+		ThemeSwitcher.SetDockWidget(screenGui)
 		screenGui.Title = "Quenty's Class Converter Plugin"
 	end
 	screenGui:BindToClose(function()

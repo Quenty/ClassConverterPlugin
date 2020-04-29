@@ -1,0 +1,18 @@
+{
+  "name": "TradeEnterprise",
+  "tree": {
+    "$className": "DataModel",
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$properties": {
+        "HttpEnabled": true
+      },
+      "QuentyClassConverter": {
+        "$className": "Folder",
+        "Plugin": {
+          "$path": "src"
+        }
+      }
+    }
+  }
+}

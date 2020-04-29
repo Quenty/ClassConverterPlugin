@@ -9,7 +9,7 @@ You can find the published version [here](https://www.roblox.com/library/9066816
 
 1. Open up Roblox Studio
 2. Open up a new place, go to the Plugins tab, then manage plugins
-3. Navigate to https://www.roblox.com/library/906681627/Quentys-Class-Converter 
+3. Navigate to https://www.roblox.com/library/906681627/Quentys-Class-Converter
 4. Press Install
 
 ### Features
@@ -30,9 +30,9 @@ Here's an example of the UI
 ![alt text](images/screenshots/UIExampleFilter.png "Example of plugin interface while selecting a new class")
 
 ### Building the plugin
-This plugin is built with [Rojo](https://github.com/LPGhatguy/rojo).
+This plugin is built with [Rojo](https://github.com/LPGhatguy/rojo) (Version 0.6.0)
 
-Run 
+Run
 
 ```rojo serve```
 

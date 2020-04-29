@@ -84,6 +84,8 @@ function ThemeSwitcher.SwitchObject(obj, theme)
 		-- no return on purpose, text color still needs to be changed
 	elseif obj.Name == "ConvertButton" then -- ConvertButton's text color is always the same
 		obj.TextColor3 = ConvertButtonTextColor
+	elseif obj.Name == "Checkbox" or obj.Name == "CheckboxTemplate" then
+		obj.BackgroundColor3 = NewPalette.BackgroundOnHover
 		return
 	end
 

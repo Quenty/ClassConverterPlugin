@@ -1,4 +1,4 @@
-local MakeMaid = require(script.Parent:WaitForChild("Maid")).MakeMaid
+local MakeMaid = require(script.Parent:WaitForChild("Maid")).new
 local Signal = require(script.Parent:WaitForChild("Signal"))
 local ScrollingFrame = require(script.Parent:WaitForChild("ScrollingFrame"))
 local ValueObject = require(script.Parent:WaitForChild("ValueObject"))

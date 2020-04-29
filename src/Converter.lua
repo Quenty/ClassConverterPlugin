@@ -262,7 +262,7 @@ function Converter:GetSuggested(selection, settings)
 
 		-- Exploration
 		local _, selected = next(selection)
-		if selection then
+		if selected then
 			local class = classes[selected.ClassName]
 			if not class then
 				warn(("[Converter] - Bad class name '%s'"):format(selected.ClassName))

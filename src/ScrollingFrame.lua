@@ -1,7 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 local RunService       = game:GetService("RunService")
 
-local MakeMaid = require(script.Parent:WaitForChild("Maid")).MakeMaid
+local MakeMaid = require(script.Parent:WaitForChild("Maid")).new
 local Signal = require(script.Parent:WaitForChild("Signal"))
 local Spring = require(script.Parent:WaitForChild("Spring"))
 

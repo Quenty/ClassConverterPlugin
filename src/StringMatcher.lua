@@ -7,9 +7,7 @@ The matcher module provides easy and advanced matching of strings.
 @module _M.textui.util.matcher
 ]]
 
-local _G, string, table, math = _G, string, table, math
-local ipairs, type, setmetatable, tostring, append =
-      ipairs, type, setmetatable, tostring, table.insert
+-- luacheck: ignore
 
 local matcher = {}
 local _ENV = matcher

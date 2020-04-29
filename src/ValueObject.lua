@@ -1,48 +1,69 @@
-local RunService = game:GetService("RunService")
+--- To work like value objects in ROBLOX and track a single item,
+-- with `.Changed` events
+-- @classmod ValueObject
+
 local Signal = require(script.Parent:WaitForChild("Signal"))
-
-
--- @author Quenty
--- Intent: To work like value objects in ROBLOX and track a single item,
---         with .Changed events
+local Maid = require(script.Parent:WaitForChild("Maid"))
 
 local ValueObject = {}
 ValueObject.ClassName = "ValueObject"
 
-function ValueObject.new()
-	local self = setmetatable({}, ValueObject)
+--- The value of the ValueObject
+-- @tfield Variant Value
 
-	self.Changed = Signal.new() -- :fire(NewValue, OldValue)
+--- Event fires when the value's object value change
+-- @signal Changed
+-- @tparam Variant newValue The new value
+-- @tparam Variant oldValue The old value
 
-	return self
+
+--- Constructs a new value object
+-- @constructor
+-- @treturn ValueObject
+function ValueObject.new(baseValue)
+	local self = {}
+
+	rawset(self, "_value", baseValue)
+
+	self._maid = Maid.new()
+
+	self.Changed = Signal.new() -- :Fire(newValue, oldValue, maid)
+	self._maid:GiveTask(self.Changed)
+
+	return setmetatable(self, ValueObject)
 end
 
-function ValueObject:__index(Index)
-	if Index == "Value" then
-		return self._Value
-	elseif Index == "_Value" then
-		return nil -- Edge case.
-	elseif ValueObject[Index] then
-		return ValueObject[Index]
+function ValueObject:__index(index)
+	if index == "Value" then
+		return self._value
+	elseif ValueObject[index] then
+		return ValueObject[index]
+	elseif index == "_value" then
+		return nil -- Edge case
 	else
-		error("'" .. tostring(Index) .. "' is not a member of ValueObject")
+		error(("%q is not a member of ValueObject"):format(tostring(index)))
 	end
 end
 
-function ValueObject:__newindex(Index, Value)
-	if Index == "Value" then
-		if self.Value ~= Value then
-			local Old = self.Value
-			self._Value = Value
-			self.Changed:fire(Value, Old)
+function ValueObject:__newindex(index, value)
+	if index == "Value" then
+		local previous = rawget(self, "_value", value)
+		if previous ~= value then
+			rawset(self, "_value", value)
+
+			local maid = Maid.new()
+			self._maid._valueMaid = maid
+			self.Changed:Fire(value, previous, maid)
 		end
-	elseif Index == "_Value" then
-		rawset(self, Index, Value)
-	elseif Index == "Changed" then
-		rawset(self, Index, Value)
 	else
-		error("'" .. tostring(Index) .. "' is not a member of ValueObject")
+		error(("%q is not a member of ValueObject"):format(tostring(index)))
 	end
+end
+
+--- Forces the value to be nil on cleanup, cleans up the Maid
+function ValueObject:Destroy()
+	self.Value = nil
+	self._maid:DoCleaning()
 end
 
 return ValueObject

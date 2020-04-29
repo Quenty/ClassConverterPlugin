@@ -65,7 +65,17 @@ Converter.BaseGroups = {
 }
 
 
-for _, item in pairs({"Workspace", "Debris", "Players", "Lighting", "ReplicatedFirst", "ReplicatedStorage", "StarterGui", "StarterPack", "Teams", "Chat"}) do
+for _, item in pairs({
+	"Workspace",
+	"Debris",
+	"Players",
+	"Lighting",
+	"ReplicatedFirst",
+	"ReplicatedStorage",
+	"StarterGui",
+	"StarterPack",
+	"Teams",
+	"Chat"}) do
 	Converter.ServiceNameMap[item] = true
 end
 
@@ -104,15 +114,15 @@ function Converter:CanConvert(selection)
 		if not commonAncestorsAndGroupsMap then
 			commonAncestorsAndGroupsMap = {}
 			-- Make a copy because original table is cached
-			for item, _ in pairs(Class:GetAncestorsAndGroups()) do
-				commonAncestorsAndGroupsMap[item] = true
+			for child, _ in pairs(Class:GetAncestorsAndGroups()) do
+				commonAncestorsAndGroupsMap[child] = true
 			end
 		else
 			-- Make sure we've got something in common with (set intersection)
 			local newCommon = {}
-			for item, _ in pairs(Class:GetAncestorsAndGroups()) do
-				if commonAncestorsAndGroupsMap[item] then
-					newCommon[item] = true
+			for child, _ in pairs(Class:GetAncestorsAndGroups()) do
+				if commonAncestorsAndGroupsMap[child] then
+					newCommon[child] = true
 				end
 			end
 			commonAncestorsAndGroupsMap = newCommon
@@ -251,24 +261,18 @@ function Converter:GetSuggested(selection, settings)
 		end
 
 		-- Exploration
-		local explored = false
-		for _, selected in pairs(selection) do
+		local _, selected = next(selection)
+		if selection then
 			local class = classes[selected.ClassName]
 			if not class then
 				warn(("[Converter] - Bad class name '%s'"):format(selected.ClassName))
 				return nil
 			end
-			explored = true
 			Explore(class)
-			break
-		end
-
-		if not explored then
+		else
 			Explore(classes["Instance"])
 		end
 	end
-
-
 
 	local services = self.ServiceNameMap
 

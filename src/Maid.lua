@@ -1,100 +1,122 @@
---[[Maid
-Manages the cleaning of events and other things.
-
-Modified by Quenty
-
-API:
-	MakeMaid()                        Returns a new Maid object.
-
-	Maid[key] = (function)            Adds a task to perform when cleaning up.
-	Maid[key] = (event connection)    Manages an event connection. Anything that isn"t a function is assumed to be this.
-	Maid[key] = (Maid)                Maids can act as an event connection, allowing a Maid to have other maids to clean up.
-	Maid[key] = (Object)              Maids can cleanup objects with a `Destroy` method
-	Maid[key] = nil                   Removes a named task. If the task is an event, it is disconnected. If it is an object, it is destroyed.
-
-	Maid:GiveTask(task)               Same as above, but uses an incremented number as a key.
-	Maid:DoCleaning()                 Disconnects all managed events and performs all clean-up tasks.
-	Maid:Destroy()                    Alias for DoCleaning()
-]]
+---	Manages the cleaning of events and other things.
+-- Useful for encapsulating state and make deconstructors easy
+-- @classmod Maid
+-- @see Signal
 
 local Maid = {}
+Maid.ClassName = "Maid"
 
+--- Returns a new Maid object
+-- @constructor Maid.new()
+-- @treturn Maid
 function Maid.new()
 	local self = {}
 
-	self.Tasks = {}
-	self.Instances = {}
-	self.IsCurrentlyCleaning = false
+	self._tasks = {}
 
 	return setmetatable(self, Maid)
 end
-Maid.MakeMaid = Maid.new
 
-function Maid:__index(Index)
-	if Maid[Index] then
-		return Maid[Index]
+--- Returns Maid[key] if not part of Maid metatable
+-- @return Maid[key] value
+function Maid:__index(index)
+	if Maid[index] then
+		return Maid[index]
 	else
-		return self.Tasks[Index]
+		return self._tasks[index]
 	end
 end
 
-function Maid:__newindex(Index, Value)
-	if self.IsCurrentlyCleaning then
-		error(("Already cleaning, cannot add index '%s'"):format(tostring(Index)), 2)
-	elseif Maid[Index] ~= nil then
-		error(("'%s' is reserved"):format(tostring(Index)), 2)
+--- Add a task to clean up
+-- @usage
+-- Maid[key] = (function)         Adds a task to perform
+-- Maid[key] = (event connection) Manages an event connection
+-- Maid[key] = (Maid)             Maids can act as an event connection, allowing a Maid to have other maids to clean up.
+-- Maid[key] = (Object)           Maids can cleanup objects with a `Destroy` method
+-- Maid[key] = nil                Removes a named task. If the task is an event, it is disconnected. If it is an object,
+--                                it is destroyed.
+function Maid:__newindex(index, newTask)
+	if Maid[index] ~= nil then
+		error(("'%s' is reserved"):format(tostring(index)), 2)
 	end
 
-	self.IsCurrentlyCleaning = true
-	local Tasks = self.Tasks
+	local tasks = self._tasks
+	local oldTask = tasks[index]
+	tasks[index] = newTask
 
-	-- Disconnect if the task is an event and destroy if the task is an object
-	if Tasks[Index] ~= nil and type(Tasks[Index]) ~= "function" then
-		if typeof(Tasks[Index]) == "RBXScriptConnection" then
-			Tasks[Index]:disconnect()
-		else
-			Tasks[Index]:Destroy()
+	if oldTask then
+		if type(oldTask) == "function" then
+			oldTask()
+		elseif typeof(oldTask) == "RBXScriptConnection" then
+			oldTask:Disconnect()
+		elseif oldTask.Destroy then
+			oldTask:Destroy()
 		end
 	end
-	self.IsCurrentlyCleaning = false
-
-	Tasks[Index] = Value
 end
 
-function Maid:GiveTask(Task)
-	if self.IsCurrentlyCleaning then
-		error(("Currently cleaning, cannot give task"), 2)
+--- Same as indexing, but uses an incremented number as a key.
+-- @param task An item to clean
+-- @treturn number taskId
+function Maid:GiveTask(task)
+	assert(task, "Task cannot be false or nil")
+
+	local taskId = #self._tasks+1
+	self[taskId] = task
+
+	if type(task) == "table" and (not task.Destroy) then
+		warn("[Maid.GiveTask] - Gave table task without .Destroy\n\n" .. debug.traceback())
 	end
 
-	local TaskId = #self.Tasks+1
-	self[TaskId] = Task
-	return TaskId
+	return taskId
 end
 
-function Maid:IsCleaning()
-	return self.IsCurrentlyCleaning
+function Maid:GivePromise(promise)
+	if not promise:IsPending() then
+		return promise
+	end
+
+	local newPromise = promise.resolved(promise)
+	local id = self:GiveTask(newPromise)
+
+	-- Ensure GC
+	newPromise:Finally(function()
+		self[id] = nil
+	end)
+
+	return newPromise
 end
 
+--- Cleans up all tasks.
+-- @alias Destroy
 function Maid:DoCleaning()
-	if self.IsCurrentlyCleaning then
-		error("Already cleaning, cannot call DoCleaning()", 2)
-		return
+	local tasks = self._tasks
+
+	-- Disconnect all events first as we know this is safe
+	for index, task in pairs(tasks) do
+		if typeof(task) == "RBXScriptConnection" then
+			tasks[index] = nil
+			task:Disconnect()
+		end
 	end
 
-	self.IsCurrentlyCleaning = true
-	local Tasks = self.Tasks
-	for Index, Task in pairs(Tasks) do
-		if type(Task) == "function" then
-			Task()
-		elseif typeof(Task) == "RBXScriptConnection" then
-			Task:disconnect()
-		else
-			Task:Destroy()
+	-- Clear out tasks table completely, even if clean up tasks add more tasks to the maid
+	local index, task = next(tasks)
+	while task ~= nil do
+		tasks[index] = nil
+		if type(task) == "function" then
+			task()
+		elseif typeof(task) == "RBXScriptConnection" then
+			task:Disconnect()
+		elseif task.Destroy then
+			task:Destroy()
 		end
-		Tasks[Index] = nil
+		index, task = next(tasks)
 	end
-	self.IsCurrentlyCleaning = false
 end
-Maid.Destroy = Maid.DoCleaning -- Allow maids to nested
+
+--- Alias for DoCleaning()
+-- @function Destroy
+Maid.Destroy = Maid.DoCleaning
 
 return Maid

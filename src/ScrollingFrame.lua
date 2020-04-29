@@ -3,8 +3,9 @@ local RunService       = game:GetService("RunService")
 
 local MakeMaid = require(script.Parent:WaitForChild("Maid")).MakeMaid
 local Signal = require(script.Parent:WaitForChild("Signal"))
-local SpringPhysics = require(script.Parent:WaitForChild("SpringPhysics"))
+local Spring = require(script.Parent:WaitForChild("Spring"))
 
+-- luacheck: ignore
 
 local Scroller = {}
 Scroller.ClassName = "Scroller"
@@ -17,7 +18,7 @@ Scroller._ViewSize = 50
 function Scroller.new()
 	local self = setmetatable({}, Scroller)
 
-	self.Spring = SpringPhysics.Spring.New(0)
+	self.Spring = Spring.new(0)
 	self.Spring.Speed = 20
 
 	return self
@@ -57,7 +58,7 @@ function Scroller:__index(Index)
 	elseif Index == "Min" or Index == "ContentMin" then
 		return self._Min
 	elseif Index == "Position" then
-		return self.Spring.Position		
+		return self.Spring.Position
 	elseif Index == "BackBounceInputRange" then
 		return self._ViewSize -- Maximum distance we can drag past the end
 	elseif Index == "BackBounceRenderRange" then
@@ -108,12 +109,12 @@ end
 
 function Scroller:__newindex(Index, Value)
 	if Scroller[Index] or Index == "Spring" then
-		rawset(self, Index, Value)	
+		rawset(self, Index, Value)
 	elseif Index == "Min" or Index == "ContentMin" then
 		self._Min = Value
 	elseif Index == "Max" then
 		self._Max = Value
-		self.Target = self.Target -- Force update! 
+		self.Target = self.Target -- Force update!
 	elseif Index == "TotalContentLength" then
 		self.Max = self._Min + Value
 	elseif Index == "ViewSize" then
@@ -308,7 +309,7 @@ function ScrollingFrame:UpdateScroller()
 	self.Scroller.ViewSize = self.Container.AbsoluteSize.y
 end
 
-function ScrollingFrame:UpdateRender()	
+function ScrollingFrame:UpdateRender()
 	self.Gui.Position = UDim2.new(self.Gui.Position.X, UDim.new(0, self.Scroller.BoundedRenderPosition))
 	for _, Scrollbar in pairs(self.Scrollbars) do
 		Scrollbar:UpdateRender()
@@ -432,13 +433,13 @@ function ScrollingFrame:InputBegan(InputBeganObject, Options)
 			Maid.InputChanged = UserInputService.InputChanged:connect(function(InputObject, GameProcessed)
 				if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
 					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(InputObject))
-				end	
+				end
 			end)
 		elseif InputBeganObject.UserInputType == Enum.UserInputType.Touch then
 			local function Update(InputObject, GameProcessed)
 				if InputObject.UserInputType == Enum.UserInputType.Touch then
 					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(InputObject))
-				end	
+				end
 			end
 
 			Maid.InputChanged = UserInputService.InputChanged:connect(Update)

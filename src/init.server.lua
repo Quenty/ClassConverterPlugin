@@ -2,6 +2,8 @@
 -- @author Quenty
 -- With help from: Badcc, Stravant, TreyReynolds
 
+-- luacheck: globals plugin
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")

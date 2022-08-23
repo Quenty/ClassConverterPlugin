@@ -13,8 +13,8 @@ Converter.SearchCache = false -- TODO: Try enabling cache
 Converter.ServiceNameMap = setmetatable({}, {
 	__index = function(self, className)
 		local isService = className:find("Service$")
-		               or className:find("Provider$")
-		               or className:find("Settings$")
+			or className:find("Provider$")
+			or className:find("Settings$")
 
 		if not isService then
 			-- Try to find the service
@@ -544,6 +544,11 @@ function Converter:ChangeClass(object, ClassName)
 	-- Tag instance
 	for _, Tag in pairs(CollectionService:GetTags(object)) do
 		CollectionService:AddTag(newObject, Tag)
+	end
+	
+	-- Attribute instance
+	for AttributeName, AttributeValue in pairs(object:GetAttributes()) do
+		newObject:SetAttribute(AttributeName, AttributeValue)
 	end
 
 	-- Go through each child and identify properties that point towards the parent that's getting replaced

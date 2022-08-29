@@ -545,7 +545,6 @@ function Converter:ChangeClass(object, ClassName)
 	for _, Tag in pairs(CollectionService:GetTags(object)) do
 		CollectionService:AddTag(newObject, Tag)
 	end
-	
 	-- Attribute instance
 	for AttributeName, AttributeValue in pairs(object:GetAttributes()) do
 		newObject:SetAttribute(AttributeName, AttributeValue)

@@ -4,11 +4,14 @@
 
 -- luacheck: globals plugin
 
+local modules = script:WaitForChild("modules")
+local loader = modules:FindFirstChild("LoaderUtils", true).Parent
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
-local IS_DEBUG_MODE = script:IsDescendantOf(game)
+local IS_DEBUG_MODE = script:IsDescendantOf(game) and not script:FindFirstAncestorWhichIsA("PluginDebugService")
 if IS_DEBUG_MODE then
 	warn("[Converter] - Starting plugin in debug mode")
 	while not Players.LocalPlayer do
@@ -16,12 +19,15 @@ if IS_DEBUG_MODE then
 	end
 end
 
-local Converter = require(script:WaitForChild("Converter"))
-local UI = require(script:WaitForChild("UI"))
-local Signal = require(script:WaitForChild("Signal"))
-local ThemeSwitcher = require(script:WaitForChild("ThemeSwitcher"))
+local require = require(loader).bootstrapPlugin(modules)
 
-local Selection do
+local Converter = require("Converter")
+local UI = require("UI")
+local Signal = require("Signal")
+local ThemeSwitcher = require("ThemeSwitcher")
+
+local Selection
+do
 	if not IS_DEBUG_MODE then
 		Selection = game.Selection
 	else
@@ -35,20 +41,20 @@ local Selection do
 		end
 		function Selection:Set(Items)
 			self.Items = Items
-			self.SelectionChanged:fire()
+			self.SelectionChanged:Fire()
 		end
 
-		local Mouse = Players.LocalPlayer:GetMouse()
-		Mouse.Button1Down:connect(function()
+		local mouse = Players.LocalPlayer:GetMouse()
+		mouse.Button1Down:Connect(function()
 			local New = {}
-			if Mouse.Target and Mouse.Target:IsA("BasePart") then
+			if mouse.Target and mouse.Target:IsA("BasePart") then
 				if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
 					for _, Item in pairs(Selection:Get()) do
 						table.insert(New, Item)
 					end
 				end
-				if not Mouse.Target.Locked then
-					table.insert(New, Mouse.Target)
+				if not mouse.Target.Locked then
+					table.insert(New, mouse.Target)
 				end
 			end
 			Selection:Set(New)
@@ -88,8 +94,7 @@ if IS_DEBUG_MODE then
 	plugin = FakeMetatable.new(plugin)
 end
 
-local converter = Converter.new(IS_DEBUG_MODE)
-	:WithPluginForCache(plugin)
+local converter = Converter.new(IS_DEBUG_MODE):WithPluginForCache(plugin)
 
 local screenGui
 do
@@ -100,16 +105,9 @@ do
 		screenGui.Parent = Players.LocalPlayer.PlayerGui
 		screenGui.Enabled = false
 	else
-		local info = DockWidgetPluginGuiInfo.new(
-			Enum.InitialDockState.Float,
-			false,
-			true,
-			250,
-			320,
-			200,
-			240
-		)
+		local info = DockWidgetPluginGuiInfo.new(Enum.InitialDockState.Float, false, true, 250, 320, 200, 240)
 		screenGui = plugin:CreateDockWidgetPluginGui("Quenty_Class_Converter", info)
+		print("set", screenGui)
 		ThemeSwitcher.SetDockWidget(screenGui)
 		screenGui.Title = "Quenty's Class Converter Plugin"
 	end
@@ -120,8 +118,7 @@ do
 		local main = script.Parent.ScreenGui.Main:Clone()
 		main.Parent = screenGui
 
-		local ui = UI.new(main, Selection)
-			:WithConverter(converter)
+		local ui = UI.new(main, Selection):WithConverter(converter)
 
 		screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
 			ui:SetVisible(screenGui.Enabled)
@@ -133,13 +130,12 @@ do
 
 		if not IS_DEBUG_MODE then
 			local ChangeHistoryService = game:GetService("ChangeHistoryService")
-			ui.ConversionStarting:connect(function()
+			ui.ConversionStarting:Connect(function()
 				ChangeHistoryService:SetWaypoint("Conversion_" .. HttpService:GenerateGUID(true))
 			end)
-			ui.ConversionEnding:connect(function()
+			ui.ConversionEnding:Connect(function()
 				ChangeHistoryService:SetWaypoint("Conversion_" .. HttpService:GenerateGUID(true))
 			end)
-
 
 			screenGui.WindowFocusReleased:Connect(function()
 				ui.DropDown:SetVisible(false)
@@ -164,17 +160,14 @@ end
 if not IS_DEBUG_MODE then
 	local toolbar = plugin:CreateToolbar("Object")
 
-	local button = toolbar:CreateButton(
-		"Class converter",
-		"Converts classes from one item to another",
-		"rbxassetid://906772526"
-	)
+	local button =
+		toolbar:CreateButton("Class converter", "Converts classes from one item to another", "rbxassetid://906772526")
 
 	screenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
 		button:SetActive(screenGui.Enabled)
 	end)
 
-	button.Click:connect(function()
+	button.Click:Connect(function()
 		screenGui.Enabled = not screenGui.Enabled
 	end)
 else

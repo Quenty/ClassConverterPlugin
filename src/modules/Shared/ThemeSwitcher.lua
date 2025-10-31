@@ -9,6 +9,23 @@ local Studio = settings().Studio
 
 local DockWidget = nil
 
+local TokenToStudioStyleGuide = {
+	Background = Enum.StudioStyleGuideColor.MainBackground,
+	BackgroundOnHover = { Enum.StudioStyleGuideColor.Button, Enum.StudioStyleGuideModifier.Hover },
+
+	Text = Enum.StudioStyleGuideColor.MainText,
+	DropDownText = { Enum.StudioStyleGuideColor.MainText },
+	DropDownMouseOverLerp = { Enum.StudioStyleGuideColor.Button, Enum.StudioStyleGuideModifier.Hover },
+	TextBoxText = Enum.StudioStyleGuideColor.DimmedText,
+
+	Line = Enum.StudioStyleGuideColor.Border,
+	ScrollBar = Enum.StudioStyleGuideColor.ScrollBar,
+	ScrollBarOnHover = { Enum.StudioStyleGuideColor.ScrollBar, Enum.StudioStyleGuideModifier.Hover },
+	Selected = { Enum.StudioStyleGuideColor.Button, Enum.StudioStyleGuideModifier.Selected },
+
+	ButtonStyle = Enum.ButtonStyle.RobloxRoundDropdownButton,
+}
+
 local LightColors = {
 	Background = Color3.fromRGB(255, 255, 255),
 	BackgroundOnHover = Color3.fromRGB(242, 242, 242),
@@ -43,7 +60,6 @@ local DarkColors = {
 }
 local ConvertButtonTextColor = Color3.fromRGB(255, 255, 255)
 
-
 -- find theme colors (defaults to light if other themes are available besides light and dark)
 local function GetColorPalette(theme)
 	if theme == Enum.UITheme.Dark then
@@ -52,32 +68,31 @@ local function GetColorPalette(theme)
 	return LightColors
 end
 
-
 -- determines if a button is a button in the dropdown menu
 local function isInDropDown(obj)
 	return (obj.Parent.Parent.Parent.Parent and obj.Parent.Parent.Parent.Parent.Name == "DropDown")
 end
-
 
 -- determines if something is a "Line" (really skinny Frame that stretches across the page)
 local function isLine(obj)
 	return obj.AbsoluteSize.Y == 1 or obj.AbsoluteSize.Y == 2
 end
 
-
 -- changes the theme of a given ui element
-function ThemeSwitcher.SwitchObject(obj, theme)
-	if not obj:IsA("GuiBase") then return end
-	theme = theme or Studio["UI Theme"]
+function ThemeSwitcher.SwitchObject(obj)
+	if not obj:IsA("GuiBase") then
+		return
+	end
+	-- theme = theme or Studio["UI Theme"]
 
-	local NewPalette = GetColorPalette(theme)
+	local NewPalette = GetColorPalette()
 
 	-- handle special cases first
 	if isLine(obj) then -- lines in the main view
-		obj.BackgroundColor3 = NewPalette.Line
+		obj.BackgroundColor3 = ThemeSwitcher.GetColorFor("Background")
 		return
 	elseif obj.Name == "Scrollbar" then -- scroll bar in the drop down
-		obj.BackgroundColor3 = NewPalette.ScrollBar
+		obj.BackgroundColor3 = ThemeSwitcher.GetColorFor("ScrollBar")
 		return
 	elseif obj.Name == "CheckButton" then -- check boxes in the main view
 		obj.Style = NewPalette.ButtonStyle
@@ -85,7 +100,7 @@ function ThemeSwitcher.SwitchObject(obj, theme)
 	elseif obj.Name == "ConvertButton" then -- ConvertButton's text color is always the same
 		obj.TextColor3 = ConvertButtonTextColor
 	elseif obj.Name == "Checkbox" or obj.Name == "CheckboxTemplate" then
-		obj.BackgroundColor3 = NewPalette.BackgroundOnHover
+		obj.BackgroundColor3 = ThemeSwitcher.GetColorFor("BackgroundOnHover")
 		return
 	end
 
@@ -94,49 +109,51 @@ function ThemeSwitcher.SwitchObject(obj, theme)
 		local NewTextColor
 
 		if obj:IsA("TextBox") then
-			 NewTextColor = NewPalette.TextBoxText
+			NewTextColor = ThemeSwitcher.GetColorFor("TextBoxText")
 		elseif isInDropDown(obj) then
-			NewTextColor = NewPalette.DropDownText
+			NewTextColor = ThemeSwitcher.GetColorFor("DropDownText")
 		else
-			NewTextColor = NewPalette.Text
+			NewTextColor = ThemeSwitcher.GetColorFor("Text")
 		end
 
 		obj.TextColor3 = NewTextColor
 	end
 
 	-- lastly change the background
-	obj.BackgroundColor3 = NewPalette.Background
+	obj.BackgroundColor3 = ThemeSwitcher.GetColorFor("Background")
 end
 
-
 -- switches every ui element within
-local function SwitchAllObjects(NewTheme)
+local function SwitchAllObjects()
 	for _, obj in pairs(DockWidget:GetDescendants()) do
-		ThemeSwitcher.SwitchObject(obj, NewTheme)
+		ThemeSwitcher.SwitchObject(obj)
 	end
 end
 
-
 -- for when the user changes theme while having the window open
 Studio.ThemeChanged:Connect(function()
-	SwitchAllObjects(Studio["UI Theme"])
+	SwitchAllObjects()
 end)
-
 
 -- switches the plugin dock widget and all the objects within it
 function ThemeSwitcher.SetDockWidget(NewDockWidget)
 	DockWidget = NewDockWidget
 
-	SwitchAllObjects(Studio["UI Theme"])
 	DockWidget.DescendantAdded:Connect(function(obj)
-		ThemeSwitcher.SwitchObject(obj, Studio["UI Theme"])
+		ThemeSwitcher.SwitchObject(obj)
 	end)
 end
 
-
 -- allow other scripts to access colors
-function ThemeSwitcher.GetColorFor(ElementString)
-	local Palette = GetColorPalette(Studio["UI Theme"])
+function ThemeSwitcher.GetColorFor(ElementString: string)
+	local converted = TokenToStudioStyleGuide[ElementString]
+	if typeof(converted) == "EnumItem" then
+		return Studio.Theme:GetColor(converted)
+	elseif typeof(converted) == "table" then
+		return Studio.Theme:GetColor(unpack(converted))
+	end
+
+	local Palette = GetColorPalette()
 	return Palette[ElementString]
 end
 

@@ -2,3 +2,5 @@
 *.rbxl.lock
 
 archive/*.*
+node_modules
+roblox.yml

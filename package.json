@@ -1,0 +1,19 @@
+{
+  "name": "ClassConverterPlugin",
+  "version": "1.0.1",
+  "description": "Class converter Roblox plugin",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@quenty/fzy": "^5.10.0",
+    "@quenty/loader": "^10.9.0",
+    "@quenty/maid": "^3.5.0",
+    "@quenty/signal": "^7.11.1",
+    "@quenty/spring": "^10.9.0",
+    "@quenty/string": "^3.3.3",
+    "@quenty/valueobject": "^13.21.0"
+  }
+}

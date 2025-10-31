@@ -1,20 +1,21 @@
+local require = require(script.Parent.loader).load(script)
+
 local HttpService = game:GetService("HttpService")
 local CollectionService = game:GetService("CollectionService")
 
-local Signal = require(script.Parent:WaitForChild("Signal"))
-local StringMatcher = require(script.Parent:WaitForChild("StringMatcher"))
+local Signal = require("Signal")
+local StringMatcher = require("StringMatcher")
 
 local Converter = {}
 Converter.ClassName = "Converter"
 Converter.__index = Converter
+
 Converter.ApiSettingCacheName = "AnaminusAPICache"
-Converter.MaxCacheSettingsTime = 60*60*24 -- 1 day
+Converter.MaxCacheSettingsTime = 60 * 60 * 24 -- 1 day
 Converter.SearchCache = false -- TODO: Try enabling cache
 Converter.ServiceNameMap = setmetatable({}, {
 	__index = function(self, className)
-		local isService = className:find("Service$")
-			or className:find("Provider$")
-			or className:find("Settings$")
+		local isService = className:find("Service$") or className:find("Provider$") or className:find("Settings$")
 
 		if not isService then
 			-- Try to find the service
@@ -25,45 +26,43 @@ Converter.ServiceNameMap = setmetatable({}, {
 
 		self[className] = isService
 		return isService
-	end
+	end,
 })
-
 
 Converter.BaseGroups = {
 	Container = {
-		'Folder',
-		'Model',
-		'Configuration',
-		'Backpack',
+		"Folder",
+		"Model",
+		"Configuration",
+		"Backpack",
 	},
 	Part = {
-		'Part',
-		'WedgePart',
-		'MeshPart',
-		'TrussPart',
-		'Seat',
-		'VehicleSeat',
-		'SpawnLocation',
-		'CornerWedgePart',
+		"Part",
+		"WedgePart",
+		"MeshPart",
+		"TrussPart",
+		"Seat",
+		"VehicleSeat",
+		"SpawnLocation",
+		"CornerWedgePart",
 	},
 	Event = {
-		'RemoteEvent',
-		'RemoteFunction',
-		'BindableEvent',
-		'BindableFunction'
+		"RemoteEvent",
+		"RemoteFunction",
+		"BindableEvent",
+		"BindableFunction",
 	},
 	Particle = {
-		'Smoke',
-		'Fire',
-		'Sparkles',
-		'Trail',
-		'ParticleEmitter',
-		'Explosion',
+		"Smoke",
+		"Fire",
+		"Sparkles",
+		"Trail",
+		"ParticleEmitter",
+		"Explosion",
 	},
-	Value = '^.*Value$',
-	Mesh = '^.*Mesh$'
+	Value = "^.*Value$",
+	Mesh = "^.*Mesh$",
 }
-
 
 for _, item in pairs({
 	"Workspace",
@@ -75,11 +74,12 @@ for _, item in pairs({
 	"StarterGui",
 	"StarterPack",
 	"Teams",
-	"Chat"}) do
+	"Chat",
+}) do
 	Converter.ServiceNameMap[item] = true
 end
 
-function Converter.new(IS_DEBUG_MODE)
+function Converter.new(IS_DEBUG_MODE: boolean)
 	local self = setmetatable({}, Converter)
 
 	self.IS_DEBUG_MODE = IS_DEBUG_MODE
@@ -150,11 +150,16 @@ function Converter:GetAPIAsync(isHttpEnabledRetry)
 
 			local cacheResult = self._pluginForCache:GetSetting(self.ApiSettingCacheName)
 			if cacheResult then
-				local Age = os.time() - cacheResult.CacheTime
-				if Age <= self.MaxCacheSettingsTime then
-					local Hours = math.floor((Age / 60 / 60))
-					local Minutes = math.floor((Age/60) % 60)
-					warn(("[Converter] - Restoring from cache! Results may be out of date. Age: %d:%d"):format(Hours, Minutes))
+				local age = os.time() - cacheResult.CacheTime
+				if age <= self.MaxCacheSettingsTime then
+					local Hours = math.floor((age / 60 / 60))
+					local Minutes = math.floor((age / 60) % 60)
+					warn(
+						("[Converter] - Restoring from cache! Results may be out of date. Age: %d:%d"):format(
+							Hours,
+							Minutes
+						)
+					)
 					self.API = cacheResult.Data
 					return
 				else
@@ -164,43 +169,47 @@ function Converter:GetAPIAsync(isHttpEnabledRetry)
 			end
 		end
 
-
 		if self.APIPending then
-			return self.APIPending:wait()
+			return self.APIPending:Wait()
 		end
 
 		self.APIPending = Signal.new()
-		delay(5, function()
+		task.delay(5, function()
 			if self.APIPending then
-				self.APIPending:fire(nil, "Timed out")
+				self.APIPending:Fire(nil, "Timed out")
 			end
 		end)
 
-		spawn(function()
+		task.spawn(function()
 			if isHttpEnabledRetry then
 				print("[Converter] - API request sent")
 			end
 			local ok, err = pcall(function()
-				self.API = HttpService:JSONDecode(HttpService:GetAsync('http://anaminus.github.io/rbx/json/api/latest.json'))
+				self.API =
+					HttpService:JSONDecode(HttpService:GetAsync("http://anaminus.github.io/rbx/json/api/latest.json"))
 			end)
 			if isHttpEnabledRetry then
-				print(("[Converter] - Done retrieving API (%s)"):format(ok and "Success" or ("Failed, '%s'"):format(tostring(err))))
+				print(
+					("[Converter] - Done retrieving API (%s)"):format(
+						ok and "Success" or ("Failed, '%s'"):format(tostring(err))
+					)
+				)
 			end
 
 			if self.API then
 				-- Cache result for no-http points!
 				self._pluginForCache:SetSetting(self.ApiSettingCacheName, {
-					CacheTime = os.time();
-					Data = self.API;
+					CacheTime = os.time(),
+					Data = self.API,
 				})
 			end
 
 			if ok then
 				self.HttpNotEnabled = false
-				self.HttpNotEnabledChanged:fire()
+				self.HttpNotEnabledChanged:Fire()
 			else
 				self.HttpNotEnabled = (err or ""):find("not enabled")
-				self.HttpNotEnabledChanged:fire()
+				self.HttpNotEnabledChanged:Fire()
 				err = err or "Error, no extra data"
 
 				if self.IS_DEBUG_MODE then
@@ -208,16 +217,15 @@ function Converter:GetAPIAsync(isHttpEnabledRetry)
 				end
 			end
 
-			self.APIPending:fire(self.API, err)
+			self.APIPending:Fire(self.API, err)
 			self.APIPending = nil
 		end)
 
-		self.APIPending:wait()
+		self.APIPending:Wait()
 	end
 
 	return self.API
 end
-
 
 function Converter:GetSuggested(selection, settings)
 	local classes = self:GetClassesMap()
@@ -233,7 +241,7 @@ function Converter:GetSuggested(selection, settings)
 		end
 	else
 		local function Explore(baseClass)
-			local queue = {{baseClass, 0}}
+			local queue = { { baseClass, 0 } }
 
 			-- Breadth first search
 			while #queue > 0 do
@@ -248,11 +256,11 @@ function Converter:GetSuggested(selection, settings)
 					rankMap[Class] = Rank + ExtraRank
 
 					for _, Item in pairs(Class.Children) do
-						table.insert(queue, {Item, Rank + 10})
+						table.insert(queue, { Item, Rank + 10 })
 					end
 
 					if Class.Superclass then
-						table.insert(queue, {Class.Superclass, Rank - 100})
+						table.insert(queue, { Class.Superclass, Rank - 100 })
 					end
 				end
 			end
@@ -277,7 +285,7 @@ function Converter:GetSuggested(selection, settings)
 	local services = self.ServiceNameMap
 
 	local function doInclude(class)
-		return  (not class.Tags.notbrowsable or settings.IncludeNotBrowsable)
+		return (not class.Tags.notbrowsable or settings.IncludeNotBrowsable)
 			and (not class.Tags.notCreatable or settings.IncludeNotCreatable)
 			and (not services[class.ClassName] or settings.IncludeServices)
 		--[[
@@ -307,7 +315,7 @@ end
 local ClassMetatable = {}
 ClassMetatable.__index = ClassMetatable
 
-function ClassMetatable:IsA(type)
+function ClassMetatable:IsA(type: string): boolean
 	if not self then
 		return false
 	elseif self.ClassName == type then
@@ -324,17 +332,17 @@ function ClassMetatable:GetAllProperties()
 		return self.AllProperties
 	end
 
-	local Properties = {}
-	local Current = self
+	local properties = {}
+	local current = self
 
-	while Current do
-		for _, Property in pairs(Current.Properties) do
-			Properties[Property.Name] = Property
+	while current do
+		for _, property in pairs(current.Properties) do
+			properties[property.Name] = property
 		end
-		Current = Current.Superclass
+		current = current.Superclass
 	end
-	self.AllProperties = Properties
-	return Properties
+	self.AllProperties = properties
+	return properties
 end
 
 function ClassMetatable:GetAncestorsAndGroups()
@@ -380,13 +388,13 @@ function Converter:GetClassesMap()
 		if Data.type == "Class" then
 			ClassCount = ClassCount + 1
 			local Class = setmetatable({
-				ClassName = Data.Name;
-				Children = {};
-				OriginalData = Data;
-				Tags = {};
-				Properties = {};
+				ClassName = Data.Name,
+				Children = {},
+				OriginalData = Data,
+				Tags = {},
+				Properties = {},
 				-- Parent = nil;
-				Groups = {};
+				Groups = {},
 			}, ClassMetatable)
 
 			if Data.tags then
@@ -398,9 +406,9 @@ function Converter:GetClassesMap()
 		elseif Data.type == "Property" then
 			PropertyCount = PropertyCount + 1
 			Properties[Data] = {
-				Name = Data.Name;
-				OriginalData = Data;
-				Classes = {};
+				Name = Data.Name,
+				OriginalData = Data,
+				Classes = {},
 				-- Class = nil;
 			}
 		end
@@ -410,7 +418,7 @@ function Converter:GetClassesMap()
 	for _, Property in pairs(Properties) do
 		local Class = Classes[Property.OriginalData.Class]
 		if Class then
-			Class.Properties[Property.Name] = Property;
+			Class.Properties[Property.Name] = Property
 			table.insert(Property.Classes, Class)
 		else
 			warn("No class found for property '%s'"):format(tostring(Property.Name))
@@ -423,7 +431,7 @@ function Converter:GetClassesMap()
 		if SuperclassName and Classes[SuperclassName] then
 			local Superclass = Classes[SuperclassName]
 			table.insert(Superclass.Children, Class)
-			Class.Superclass = Superclass;
+			Class.Superclass = Superclass
 		end
 	end
 	self._classes = Classes
@@ -436,7 +444,7 @@ function Converter:GetClassesMap()
 			if self._classes[GroupData] then
 				AddToGroup(Group, self._classes[GroupData])
 			else
-				assert(GroupData:sub(#GroupData,#GroupData) == "$")
+				assert(GroupData:sub(#GroupData, #GroupData) == "$", "Bad group pattern")
 
 				for _, Class in pairs(self._classes) do
 					if Class.ClassName:find(GroupData) then
@@ -463,14 +471,13 @@ function Converter:GetClassesMap()
 
 	for GroupName, GroupData in pairs(self.BaseGroups) do
 		local Group = {
-			Name = GroupName;
-			Classes = {};
+			Name = GroupName,
+			Classes = {},
 		}
 		AddToGroup(Group, GroupData)
 		table.insert(Groups, Group)
 	end
 	self.Groups = Groups
-
 
 	local Options = {}
 	for _, Class in pairs(Classes) do
@@ -518,7 +525,6 @@ function Converter:ChangeClass(object, ClassName)
 
 	Recurse(object.ClassName, object, newObject)--]]
 
-
 	local currentClass = Classes[object.ClassName]
 	local newClass = Classes[ClassName]
 
@@ -542,8 +548,8 @@ function Converter:ChangeClass(object, ClassName)
 	end
 
 	-- Tag instance
-	for _, Tag in pairs(CollectionService:GetTags(object)) do
-		CollectionService:AddTag(newObject, Tag)
+	for _, tag in pairs(CollectionService:GetTags(object)) do
+		CollectionService:AddTag(newObject, tag)
 	end
 	-- Attribute instance
 	for AttributeName, AttributeValue in pairs(object:GetAttributes()) do
@@ -557,9 +563,9 @@ function Converter:ChangeClass(object, ClassName)
 
 	for _, descendant in pairs(descendantList) do
 		if descendantPropertyMap[descendant] then
-			for Property, NewValue in pairs(descendantPropertyMap[descendant]) do
+			for property, newValue in pairs(descendantPropertyMap[descendant]) do
 				pcall(function()
-					descendant[Property] = NewValue
+					descendant[property] = newValue
 				end)
 			end
 		end
@@ -578,8 +584,8 @@ end
 
 --- Map oldParent to NewParent to handle welds in children
 function Converter:GetDescendantPropertyMap(childrenList, object, newObject)
-	assert(newObject)
-	assert(object)
+	assert(newObject, "Bad newObject")
+	assert(object, "Bad object")
 
 	local classes = self:GetClassesMap()
 	if not classes then

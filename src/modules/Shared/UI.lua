@@ -1,21 +1,14 @@
-local MakeMaid = require(script.Parent:WaitForChild("Maid")).new
-local Signal = require(script.Parent:WaitForChild("Signal"))
-local ScrollingFrame = require(script.Parent:WaitForChild("ScrollingFrame"))
-local ValueObject = require(script.Parent:WaitForChild("ValueObject"))
-local IconHandler = require(script.Parent:WaitForChild("IconHandler"))
-local ThemeSwitcher = require(script.Parent:WaitForChild("ThemeSwitcher"))
+local require = require(script.Parent.loader).load(script)
+
 local HttpService = game:GetService("HttpService")
 
-local function TrimString(str, pattern)
-	pattern = pattern or "%s";
-	-- %S is whitespaces
-	-- When we find the first non space character defined by ^%s
-	-- we yank out anything in between that and the end of the string
-	-- Everything else is replaced with %1 which is essentially nothing
-
-	-- Credit Sorcus, Modified by Quenty
-	return (str:gsub("^"..pattern.."*(.-)"..pattern.."*$", "%1"))
-end
+local MakeMaid = require("Maid").new
+local Signal = require("Signal")
+local ScrollingFrame = require("ScrollingFrame")
+local ValueObject = require("ValueObject")
+local IconHandler = require("IconHandler")
+local ThemeSwitcher = require("ThemeSwitcher")
+local String = require("String")
 
 local UIBase = {}
 UIBase.ClassName = "UIBase"
@@ -24,11 +17,11 @@ UIBase.__index = UIBase
 function UIBase.new(Gui)
 	local self = setmetatable({}, UIBase)
 
-	self.Maid = MakeMaid()
+	self._maid = MakeMaid()
 
 	self.Gui = Gui or error("No GUI")
 	self.Gui.Visible = true
-	self.Maid.Gui = Gui
+	self._maid.Gui = Gui
 
 	self.VisibleChanged = Signal.new()
 
@@ -45,14 +38,14 @@ end
 function UIBase:Show(DoNotAnimate)
 	if not self:IsVisible() then
 		self.Visible = true
-		self.VisibleChanged:fire(self:IsVisible(), DoNotAnimate)
+		self.VisibleChanged:Fire(self:IsVisible(), DoNotAnimate)
 	end
 end
 
 function UIBase:Hide(DoNotAnimate)
 	if self:IsVisible() then
 		self.Visible = false
-		self.VisibleChanged:fire(self:IsVisible(), DoNotAnimate)
+		self.VisibleChanged:Fire(self:IsVisible(), DoNotAnimate)
 	end
 end
 
@@ -69,11 +62,8 @@ function UIBase:SetVisible(IsVisible, DoNotAnimate)
 end
 
 function UIBase:Destroy()
-	self.Maid:DoCleaning()
+	self._maid:DoCleaning()
 end
-
-
-
 
 local Checkbox = setmetatable({}, UIBase)
 Checkbox.__index = Checkbox
@@ -89,26 +79,26 @@ function Checkbox.new(Gui)
 	self.TextLabel = self.Gui.TextLabel
 	self.TextLabel.Text = "???"
 
-	self.Maid.Click = self.Gui.MouseButton1Click:connect(function()
+	self._maid.Click = self.Gui.MouseButton1Click:Connect(function()
 		self.Checked.Value = not self.Checked.Value
 	end)
 
-	self.Maid.ButtonClick = self.CheckButton.MouseButton1Click:connect(function()
+	self._maid.ButtonClick = self.CheckButton.MouseButton1Click:Connect(function()
 		self.Checked.Value = not self.Checked.Value
 	end)
 
-	self.Maid.Changed = self.Checked.Changed:connect(function()
+	self._maid.Changed = self.Checked.Changed:Connect(function()
 		self:UpdateRender()
 	end)
 	self:UpdateRender()
 
-	self.Maid:GiveTask(self.Gui.InputBegan:Connect(function(inputObject)
+	self._maid:GiveTask(self.Gui.InputBegan:Connect(function(inputObject)
 		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.Gui.BackgroundTransparency = 0
 		end
 	end))
 
-	self.Maid:GiveTask(self.Gui.InputEnded:Connect(function(inputObject)
+	self._maid:GiveTask(self.Gui.InputEnded:Connect(function(inputObject)
 		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.Gui.BackgroundTransparency = 1
 		end
@@ -142,8 +132,6 @@ function Checkbox:UpdateRender()
 	end
 end
 
-
-
 local DropDownButton = setmetatable({}, UIBase)
 DropDownButton.__index = DropDownButton
 DropDownButton.ClassName = "DropDownButton"
@@ -158,27 +146,27 @@ function DropDownButton.new(Gui)
 	self.IsSelected = Instance.new("BoolValue")
 	self.IsSelected.Value = false
 
-	self.Maid.IsSelectedChanged = self.IsSelected.Changed:connect(function()
+	self._maid.IsSelectedChanged = self.IsSelected.Changed:Connect(function()
 		self:UpdateRender()
 	end)
-	self.Maid.VisibleChanged = self.VisibleChanged:connect(function(IsVisible, DoNotAnimate)
-		self.Gui.Visible = IsVisible
-		if not IsVisible then
+	self._maid.VisibleChanged = self.VisibleChanged:Connect(function(isVisible, doNotAnimate)
+		self.Gui.Visible = isVisible
+		if not isVisible then
 			self.MouseOver = false
 		end
 		self:UpdateRender()
 	end)
 
 	self.MouseOver = false
-	self.Maid.InputBeganEnter = self.Gui.InputBegan:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
+	self._maid.InputBeganEnter = self.Gui.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.MouseOver = true
 			self:UpdateRender()
 		end
 	end)
 
-	self.Maid.InputEnded = self.Gui.InputEnded:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
+	self._maid.InputEnded = self.Gui.InputEnded:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.MouseOver = false
 			self:UpdateRender()
 		end
@@ -198,7 +186,7 @@ function DropDownButton:UpdateRender()
 	end
 
 	if self.MouseOver then
-		Desired = Desired:lerp(ThemeSwitcher.GetColorFor("DropDownMouseOverLerp"), 0.05)
+		Desired = Desired:lerp(ThemeSwitcher.GetColorFor("DropDownMouseOverLerp"), 1)
 	end
 
 	self.Gui.BackgroundColor3 = Desired
@@ -207,10 +195,10 @@ end
 function DropDownButton:WithScroller(Scroller)
 	self.Scroller = Scroller or error("No scroller")
 
-	self.Maid.InputBeganScroller = self.Scroller:BindInput(self.Gui, {
-		OnClick = function(InputObject)
-			self.Selected:fire()
-		end;
+	self._maid.InputBeganScroller = self.Scroller:BindInput(self.Gui, {
+		OnClick = function(inputObject)
+			self.Selected:Fire()
+		end,
 	})
 
 	return self
@@ -252,10 +240,6 @@ function DropDownButton:GetRenderData()
 	return self.RenderData
 end
 
-
-
-
-
 local DropDownFilter = setmetatable({}, UIBase)
 DropDownFilter.__index = DropDownFilter
 DropDownFilter.ClassName = "DropDownFilter"
@@ -270,50 +254,49 @@ function DropDownFilter.new(Gui)
 
 	self.AutoselectTop = Signal.new()
 
-	self.Maid.VisibleChanged = self.VisibleChanged:connect(function(IsVisible, DoNotAnimate)
+	self._maid.VisibleChanged = self.VisibleChanged:Connect(function(IsVisible, DoNotAnimate)
 		if not IsVisible then
 			self.Gui:ReleaseFocus(false)
 		end
 	end)
 
-	self.Maid.Focused = self.Gui.Focused:connect(function()
+	self._maid.Focused = self.Gui.Focused:Connect(function()
 		self.Gui.Text = ""
 	end)
 
-	self.Maid.FocusLost = self.Gui.FocusLost:connect(function(EnterPressed, InputObject)
-		local Trimmed = TrimString(self.Gui.Text)
+	self._maid.FocusLost = self.Gui.FocusLost:Connect(function(EnterPressed, inputObject)
+		local Trimmed = String.trim(self.Gui.Text)
 		if #Trimmed == 0 then
 			self.Gui.Text = self.DefaultFilterText
 		end
 
 		if EnterPressed then
-			self.AutoselectTop:fire()
+			self.AutoselectTop:Fire()
 		end
 	end)
 
-	self.Maid.FilterTextBoxChanged = self.Gui.Changed:connect(function(Property)
+	self._maid.FilterTextBoxChanged = self.Gui.Changed:Connect(function(Property)
 		if Property == "Text" then
 			self:UpdateRender()
 		end
 	end)
 
 	self.MouseOver = false
-	self.Maid.InputBeganEnter = self.Background.InputBegan:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
+	self._maid.InputBeganEnter = self.Background.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.MouseOver = true
 			self:UpdateRender()
 		end
 	end)
 
-	self.Maid.InputEnded = self.Background.InputEnded:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
+	self._maid.InputEnded = self.Background.InputEnded:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
 			self.MouseOver = false
 			self:UpdateRender()
 		end
 	end)
 
-
-	self.Maid.ClearButtonClick = self.ClearButton.MouseButton1Click:connect(function()
+	self._maid.ClearButtonClick = self.ClearButton.MouseButton1Click:Connect(function()
 		self.Gui.Text = self.DefaultFilterText
 		self.Gui:ReleaseFocus(false)
 	end)
@@ -322,7 +305,7 @@ function DropDownFilter.new(Gui)
 end
 
 function DropDownFilter:GetText()
-	local Trimmed = TrimString(self.Gui.Text)
+	local Trimmed = String.trim(self.Gui.Text)
 	if #Trimmed == 0 then
 		return self.DefaultFilterText
 	end
@@ -357,9 +340,8 @@ function DropDownFilter:UpdateRender()
 end
 
 function DropDownFilter:IsFiltered()
-	return self.Gui.Text ~= self.DefaultFilterText and #TrimString(self.Gui.Text) > 0
+	return self.Gui.Text ~= self.DefaultFilterText and #String.trim(self.Gui.Text) > 0
 end
-
 
 local DropDownPane = setmetatable({}, UIBase)
 DropDownPane.__index = DropDownPane
@@ -378,9 +360,8 @@ function DropDownPane.new(Gui)
 	self.Template = self.Container.Template
 	self.Template.Visible = false
 
-
 	self.Scroller = ScrollingFrame.new(self.Container)
-	self.Maid.Scroller = self.Scroller
+	self._maid.Scroller = self.Scroller
 
 	self.ScrollbarContainer = self.Gui.ScrollbarContainer
 	self.Scroller:AddScrollbar(self.ScrollbarContainer.Scrollbar)
@@ -391,18 +372,18 @@ function DropDownPane.new(Gui)
 		ButtonGui.Parent = self.Gui
 
 		self.SelectedRenderButton = DropDownButton.new(ButtonGui)
-		self.Maid.SelectedRenderButton = self.SelectedRenderButton
+		self._maid.SelectedRenderButton = self.SelectedRenderButton
 
 		self.SelectedRenderButton:Show()
 
-		self.Maid.SelectedRenderButtonClick = self.SelectedRenderButton.Selected:connect(function()
+		self._maid.SelectedRenderButtonClick = self.SelectedRenderButton.Selected:Connect(function()
 			self:Toggle()
 		end)
 	end
 
 	self.FilterBox = DropDownFilter.new(self.Gui.FilterTextBox)
 
-	self.Maid.VisibleChanged = self.VisibleChanged:connect(function(IsVisible, DoNotAnimate)
+	self._maid.VisibleChanged = self.VisibleChanged:Connect(function(IsVisible, DoNotAnimate)
 		self:UpdateRender()
 
 		self.FilterBox:SetVisible(IsVisible, DoNotAnimate)
@@ -414,7 +395,7 @@ function DropDownPane.new(Gui)
 	end)
 	self:UpdateRender()
 
-	self.Maid.SelectedChanged = self.Selected.Changed:connect(function(NewValue, OldValue)
+	self._maid.SelectedChanged = self.Selected.Changed:Connect(function(NewValue, OldValue)
 		if OldValue then
 			OldValue.IsSelected.Value = false
 		end
@@ -425,8 +406,7 @@ function DropDownPane.new(Gui)
 		self:UpdateRender()
 	end)
 
-
-	self.Maid.AutoselectTop = self.FilterBox.AutoselectTop:connect(function()
+	self._maid.AutoselectTop = self.FilterBox.AutoselectTop:Connect(function()
 		if self.Buttons[1] then
 			self.Selected.Value = self.Buttons[1]
 			self:Hide()
@@ -436,13 +416,12 @@ function DropDownPane.new(Gui)
 	return self
 end
 
-
 function DropDownPane:UpdateRender()
 	if self.Selected.Value then
 		self.SelectedRenderButton:WithRenderData(self.Selected.Value:GetRenderData())
 	else
 		self.SelectedRenderButton:WithRenderData({
-			Name = "Select a class";
+			Name = "Select a class",
 		})
 	end
 
@@ -475,24 +454,22 @@ function DropDownPane:GetButtonFromData(Data)
 	local Button = DropDownButton.new(Gui)
 		:WithData(Data)
 		:WithRenderData({
-			Name = Data.ClassName;
-			Image = IconHandler:GetIcon(Data.ClassName);
+			Name = Data.ClassName,
+			Image = IconHandler:GetIcon(Data.ClassName),
 		})
 		:WithScroller(self.Scroller)
 
 	ButtonMaid.Button = Button
-	ButtonMaid.Selected = Button.Selected:connect(function()
+	ButtonMaid.Selected = Button.Selected:Connect(function()
 		self.Selected.Value = Button
 		self:Hide()
 	end)
 
-
 	self.ButtonCache[Data] = Button
-	self.Maid[Button] = ButtonMaid
+	self._maid[Button] = ButtonMaid
 
 	return Button
 end
-
 
 function DropDownPane:UpdateButtons(Suggested)
 	for _, Item in pairs(self.Buttons) do
@@ -511,8 +488,6 @@ function DropDownPane:UpdateButtons(Suggested)
 	self:UpdateRender()
 end
 
-
-
 local DropDown = setmetatable({}, UIBase)
 DropDown.__index = DropDown
 DropDown.ClassName = "DropDown"
@@ -521,17 +496,16 @@ function DropDown.new(Gui)
 	local self = setmetatable(UIBase.new(Gui), DropDown)
 
 	self.Pane = DropDownPane.new(self.Gui.Pane)
-	self.Maid.Pane = self.Pane
+	self._maid.Pane = self.Pane
 
-	self.Maid.Click = self.Gui.InputBegan:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+	self._maid.Click = self.Gui.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
 			self.Pane:Toggle()
 		end
 	end)
 
 	return self
 end
-
 
 local CheckboxPane = setmetatable({}, UIBase)
 CheckboxPane.ClassName = "CheckboxPane"
@@ -558,15 +532,13 @@ function CheckboxPane:AddCheckbox(Data)
 
 	local CheckboxMaid = MakeMaid()
 
-	local checkbox = Checkbox.new(Gui)
-		:WithData(Data)
-		:WithRenderData({
-			Name = Data.Name;
-		})
+	local checkbox = Checkbox.new(Gui):WithData(Data):WithRenderData({
+		Name = Data.Name,
+	})
 	CheckboxMaid:GiveTask(checkbox)
 
-	CheckboxMaid:GiveTask(checkbox.Checked.Changed:connect(function()
-		self.SettingsChanged:fire()
+	CheckboxMaid:GiveTask(checkbox.Checked.Changed:Connect(function()
+		self.SettingsChanged:Fire()
 	end))
 
 	if Data.DefaultValue then
@@ -575,7 +547,7 @@ function CheckboxPane:AddCheckbox(Data)
 
 	checkbox:Show()
 
-	self.Maid[checkbox] = CheckboxMaid
+	self._maid[checkbox] = CheckboxMaid
 	table.insert(self.Checkboxes, checkbox)
 
 	self:UpdateRender()
@@ -599,8 +571,6 @@ function CheckboxPane:UpdateRender()
 	end
 end
 
-
-
 local Pane = setmetatable({}, UIBase)
 Pane.__index = Pane
 Pane.ClassName = "Pane"
@@ -623,55 +593,54 @@ function Pane.new(Gui, Selection)
 	self.LoadedStatusLabel = self.Buttons.LoadedStatusLabel
 
 	self.DropDown = DropDown.new(self.Content.DropDown)
-	self.Maid.DropDown = self.DropDown
+	self._maid.DropDown = self.DropDown
 
 	self.CheckboxPane = CheckboxPane.new(self.Content.Checkboxes)
-	self.Maid.CheckboxPane = self.CheckboxPane
+	self._maid.CheckboxPane = self.CheckboxPane
 
 	self.CheckboxPane:AddCheckbox({
-		Name = "Include not browsable";
-		SerializeName = "IncludeNotBrowsable";
-		DefaultValue = false;
+		Name = "Include not browsable",
+		SerializeName = "IncludeNotBrowsable",
+		DefaultValue = false,
 	})
 	self.CheckboxPane:AddCheckbox({
-		Name = "Include not creatable";
-		SerializeName = "IncludeNotCreatable";
-		DefaultValue = false;
+		Name = "Include not creatable",
+		SerializeName = "IncludeNotCreatable",
+		DefaultValue = false,
 	})
 	self.CheckboxPane:AddCheckbox({
-		Name = "Include services";
-		SerializeName = "IncludeServices";
-		DefaultValue = false;
+		Name = "Include services",
+		SerializeName = "IncludeServices",
+		DefaultValue = false,
 	})
 
-	self.Maid.SettingsChanged = self.CheckboxPane.SettingsChanged:connect(function()
+	self._maid.SettingsChanged = self.CheckboxPane.SettingsChanged:Connect(function()
 		self:UpdateRender()
 	end)
 
-	-- self.Maid.ScreenGui = self.Gui.Parent
-	-- self.Maid.CloseButtonClick = self.Gui.Header.CloseButton.MouseButton1Click:connect(function()
-	-- 	self.Done:fire()
+	-- self._maid.ScreenGui = self.Gui.Parent
+	-- self._maid.CloseButtonClick = self.Gui.Header.CloseButton.MouseButton1Click:Connect(function()
+	-- 	self.Done:Fire()
 	-- end)
 
-
-	self.Maid.RetryButton = self.RetryButton.MouseButton1Click:connect(function()
+	self._maid.RetryButton = self.RetryButton.MouseButton1Click:Connect(function()
 		self:SelectHttpService()
 		self.Converter:GetAPIAsync(true)
 		self:UpdateRender()
 	end)
 
-	self.Maid:GiveTask(self.DropDown.Pane.Selected.Changed:connect(function()
+	self._maid:GiveTask(self.DropDown.Pane.Selected.Changed:Connect(function()
 		self:UpdateRender()
 	end))
 
-	self.Maid.ConvertButtonClick = self.ConvertButton.MouseButton1Click:connect(function()
+	self._maid.ConvertButtonClick = self.ConvertButton.MouseButton1Click:Connect(function()
 		self:UpdateRender()
 		if self.IsAvailable then
 			self:DoConversion()
 		end
 	end)
 
-	self.Maid.VisibleChanged = self.VisibleChanged:connect(function(IsVisible, DoNotAnimate)
+	self._maid.VisibleChanged = self.VisibleChanged:Connect(function(IsVisible, DoNotAnimate)
 		self.CheckboxPane:SetVisible(IsVisible)
 		self.Gui.Visible = IsVisible
 
@@ -681,28 +650,26 @@ function Pane.new(Gui, Selection)
 		self:UpdateRender()
 
 		if IsVisible then
-			self.Maid.SelectionChangedEvent = self.Selection.SelectionChanged:connect(function()
+			self._maid.SelectionChangedEvent = self.Selection.SelectionChanged:Connect(function()
 				if self:IsVisible() then
 					self:UpdateRender()
 				end
 			end)
 		else
-			self.Maid.SelectionChangedEvent = nil
+			self._maid.SelectionChangedEvent = nil
 		end
 	end)
 
-	self.Maid.FilterChanged = self.DropDown.Pane.FilterBox.CurrentText.Changed:connect(function(CurrentText)
+	self._maid.FilterChanged = self.DropDown.Pane.FilterBox.CurrentText.Changed:Connect(function(CurrentText)
 		self:UpdateRender()
 	end)
-
-
 
 	return self
 end
 
 function Pane:SelectHttpService()
 	if not (#self.Selection:Get() == 1 and self.Selection:Get()[1] == HttpService) then
-		self.Selection:Set({HttpService})
+		self.Selection:Set({ HttpService })
 	end
 end
 
@@ -734,7 +701,7 @@ function Pane:UpdateRender()
 			self.StatusLabel.Text = "Nothing selected"
 			IsAvailable = false
 		elseif not self:GetClassName() then
-			self.StatusLabel.Text = ("No class picked to convert to")
+			self.StatusLabel.Text = "No class picked to convert to"
 			IsAvailable = false
 		elseif not self.Converter:CanConvert(Selection) then
 			self.StatusLabel.Text = ("%d item%s are not similar"):format(#Selection, #Selection == 1 and "" or "s")
@@ -771,7 +738,7 @@ end
 function Pane:WithConverter(Converter)
 	self.Converter = Converter or error("No converter")
 
-	self.Maid.HttpNotEnabledChanged = self.Converter.HttpNotEnabledChanged:connect(function()
+	self._maid.HttpNotEnabledChanged = self.Converter.HttpNotEnabledChanged:Connect(function()
 		self:UpdateRender()
 	end)
 
@@ -792,7 +759,7 @@ function Pane:DoConversion()
 	local Selection = self.Selection:Get()
 	if Selection and ClassName then
 		print(("[Converter] - Converting selection to '%s'"):format(tostring(ClassName)))
-		self.ConversionStarting:fire()
+		self.ConversionStarting:Fire()
 
 		local NewSelection = {}
 		for _, Object in pairs(Selection) do
@@ -801,7 +768,7 @@ function Pane:DoConversion()
 		end
 
 		self.Selection:Set(NewSelection)
-		self.ConversionEnding:fire()
+		self.ConversionEnding:Fire()
 	else
 		print("[Converter] - No selection or class name")
 	end

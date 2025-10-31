@@ -1,15 +1,18 @@
-local UserInputService = game:GetService("UserInputService")
-local RunService       = game:GetService("RunService")
+local require = require(script.Parent.loader).load(script)
 
-local MakeMaid = require(script.Parent:WaitForChild("Maid")).new
-local Signal = require(script.Parent:WaitForChild("Signal"))
-local Spring = require(script.Parent:WaitForChild("Spring"))
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local MakeMaid = require("Maid").new
+local Signal = require("Signal")
+local Spring = require("Spring")
 
 -- luacheck: ignore
 
 local Scroller = {}
 Scroller.ClassName = "Scroller"
 Scroller.__index = Scroller
+
 Scroller._Position = 0
 Scroller._Min = 0
 Scroller._Max = 100
@@ -71,7 +74,7 @@ function Scroller:__index(Index)
 		return (self._ViewSize / self.TotalContentLength)
 	elseif Index == "RenderedContentScrollPercentSize" then
 		local Position = self.Position
-		return self.ContentScrollPercentSize * (1-self:GetScale(self:GetTimesOverBounds(Position)))
+		return self.ContentScrollPercentSize * (1 - self:GetScale(self:GetTimesOverBounds(Position)))
 	elseif Index == "ContentScrollPercent" then
 		return (self.Position - self._Min) / (self.TotalContentLength - self._ViewSize)
 	elseif Index == "RenderedContentScrollPercent" then
@@ -88,9 +91,9 @@ function Scroller:__index(Index)
 		local TimesOverBounds = self:GetTimesOverBounds(Position)
 		local Scale = self:GetScale(TimesOverBounds)
 		if TimesOverBounds > 0 then
-			return -self.ContentMax - Scale*self.BackBounceRenderRange
+			return -self.ContentMax - Scale * self.BackBounceRenderRange
 		elseif TimesOverBounds < 0 then
-			return self.ContentMin + Scale*self.BackBounceRenderRange
+			return self.ContentMin + Scale * self.BackBounceRenderRange
 		else
 			return -Position
 		end
@@ -139,7 +142,6 @@ function Scroller:__newindex(Index, Value)
 	end
 end
 
-
 local BaseScroller = {}
 BaseScroller.ClassName = "Base"
 BaseScroller.__index = BaseScroller
@@ -147,7 +149,7 @@ BaseScroller.__index = BaseScroller
 function BaseScroller.new(Gui)
 	local self = setmetatable({}, BaseScroller)
 
-	self.Maid = MakeMaid()
+	self._maid = MakeMaid()
 	self.Gui = Gui or error("No Gui")
 	self.Container = self.Gui.Parent or error("No container")
 
@@ -155,8 +157,8 @@ function BaseScroller.new(Gui)
 end
 
 function BaseScroller:Destroy()
-	self.Maid:DoCleaning()
-	self.Maid = nil
+	self._maid:DoCleaning()
+	self._maid = nil
 
 	setmetatable(self, nil)
 end
@@ -174,23 +176,24 @@ function Scrollbar.new(Gui, ScrollingFrame)
 
 	self.DraggingBegan = Signal.new()
 
-	self.Maid.InputBeganGui = self.Gui.InputBegan:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseButton1 then
-			self:InputBegan(InputObject)
+	self._maid.InputBeganGui = self.Gui.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+			self:InputBegan(inputObject)
 		end
 	end)
 
-	self.Maid.InputBeganContainer = self.Container.InputBegan:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseButton1 then
-			self.LastContainerInputObject = InputObject
+	self._maid.InputBeganContainer = self.Container.InputBegan:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+			self.LastContainerInputObject = inputObject
 		end
 	end)
 
-	self.Maid.InputEndedContainer = self.Container.InputEnded:connect(function(InputObject)
-		if InputObject == self.LastContainerInputObject then
+	self._maid.InputEndedContainer = self.Container.InputEnded:Connect(function(inputObject)
+		if inputObject == self.LastContainerInputObject then
 			local ScrollbarSize = self.Container.AbsoluteSize.Y * self.ParentScroller.ContentScrollPercentSize
-			local Offset = InputObject.Position.Y - self.Container.AbsolutePosition.Y - ScrollbarSize/2 -- In the middle of the bar
-			local Percent = Offset / (self.Container.AbsoluteSize.Y * (1 - self.ParentScroller.ContentScrollPercentSize))
+			local Offset = inputObject.Position.Y - self.Container.AbsolutePosition.Y - ScrollbarSize / 2 -- In the middle of the bar
+			local Percent = Offset
+				/ (self.Container.AbsoluteSize.Y * (1 - self.ParentScroller.ContentScrollPercentSize))
 
 			self.ParentScroller.TargetContentScrollPercent = Percent
 			self.ParentScroller.Velocity = 0
@@ -205,17 +208,18 @@ function Scrollbar:StopDrag()
 	self.ScrollingFrame:StopDrag()
 end
 
-function Scrollbar:InputBegan(InputBeganObject)
-	local Maid = MakeMaid()
+function Scrollbar:InputBegan(inputBeganObject)
+	local maid = MakeMaid()
 
-	local StartPosition = InputBeganObject.Position
+	local StartPosition = inputBeganObject.Position
 	local StartPercent = self.ParentScroller.ContentScrollPercent
 	local UpdateVelocity = self.ScrollingFrame:GetVelocityTracker(0.25)
 
-	Maid.InputChanged = UserInputService.InputChanged:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
-			local Offset = (InputObject.Position - StartPosition).y
-			local Percent = Offset / (self.Container.AbsoluteSize.Y * (1 - self.ParentScroller.ContentScrollPercentSize))
+	maid.InputChanged = UserInputService.InputChanged:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
+			local Offset = (inputObject.Position - StartPosition).y
+			local Percent = Offset
+				/ (self.Container.AbsoluteSize.Y * (1 - self.ParentScroller.ContentScrollPercentSize))
 			self.ParentScroller.ContentScrollPercent = StartPercent + Percent
 			self.ParentScroller.TargetContentScrollPercent = self.ParentScroller.ContentScrollPercent
 
@@ -224,21 +228,24 @@ function Scrollbar:InputBegan(InputBeganObject)
 		end
 	end)
 
-	Maid.InputEnded = UserInputService.InputEnded:connect(function(InputObject)
-		if InputObject == InputBeganObject then
+	maid.InputEnded = UserInputService.InputEnded:Connect(function(inputObject)
+		if inputObject == inputBeganObject then
 			self:StopDrag()
 		end
 	end)
 
-	self.Maid.UpdateMaid = Maid
-	self.ScrollingFrame.Maid.UpdateMaid = Maid
+	self._maid.UpdateMaid = maid
+	self.ScrollingFrame._maid.UpdateMaid = maid
 end
 
 function Scrollbar:UpdateRender()
 	if self.ParentScroller.TotalContentLength > self.ParentScroller.ViewSize then
 		local RenderedContentScrollPercentSize = self.ParentScroller.RenderedContentScrollPercentSize
 		self.Gui.Size = UDim2.new(self.Gui.Size.X, UDim.new(RenderedContentScrollPercentSize, 0))
-		self.Gui.Position = UDim2.new(self.Gui.Position.X, UDim.new((1-RenderedContentScrollPercentSize) * self.ParentScroller.RenderedContentScrollPercent, 0))
+		self.Gui.Position = UDim2.new(
+			self.Gui.Position.X,
+			UDim.new((1 - RenderedContentScrollPercentSize) * self.ParentScroller.RenderedContentScrollPercent, 0)
+		)
 		self.Gui.Visible = true
 	else
 		self.Gui.Visible = false
@@ -258,14 +265,14 @@ function ScrollingFrame.new(Gui)
 	self:BindInput(Gui)
 	self:BindInput(self.Container)
 
-	self.Maid.ContainerChanged = self.Container.Changed:connect(function(Property)
+	self._maid.ContainerChanged = self.Container.Changed:Connect(function(Property)
 		if Property == "AbsoluteSize" then
 			self:UpdateScroller()
 			self:FreeScroll(true)
 		end
 	end)
 
-	self.Maid.GuiChanged = self.Gui.Changed:connect(function(Property)
+	self._maid.GuiChanged = self.Gui.Changed:Connect(function(Property)
 		if Property == "AbsoluteSize" then
 			self:UpdateScroller()
 			self:FreeScroll(true)
@@ -286,7 +293,7 @@ function ScrollingFrame:AddScrollbar(Gui)
 	local Bar = Scrollbar.new(Gui, self)
 	table.insert(self.Scrollbars, Bar)
 
-	self.Maid[Gui] = Bar
+	self._maid[Gui] = Bar
 end
 
 function ScrollingFrame:AddScrollbarFromContainer(Container)
@@ -316,7 +323,7 @@ function ScrollingFrame:UpdateRender()
 end
 
 function ScrollingFrame:StopUpdate()
-	self.Maid.UpdateMaid = nil
+	self._maid.UpdateMaid = nil
 end
 
 function ScrollingFrame:StopDrag()
@@ -334,21 +341,21 @@ function ScrollingFrame:StopDrag()
 end
 
 function ScrollingFrame:FreeScroll(LowPriority)
-	if LowPriority and self.Maid.UpdateMaid then
+	if LowPriority and self._maid.UpdateMaid then
 		return
 	end
 
-	local Maid = MakeMaid()
+	local maid = MakeMaid()
 
 	self:UpdateRender()
-	Maid.RenderStepped = RunService.RenderStepped:connect(function()
+	maid.RenderStepped = RunService.RenderStepped:Connect(function()
 		self:UpdateRender()
 		if self.Scroller.AtRest then
 			self:StopUpdate()
 		end
 	end)
 
-	self.Maid.UpdateMaid = Maid
+	self._maid.UpdateMaid = maid
 end
 
 function ScrollingFrame:GetVelocityTracker(Strength)
@@ -369,13 +376,13 @@ function ScrollingFrame:GetVelocityTracker(Strength)
 	end
 end
 
-function ScrollingFrame:GetProcessInput(InputBeganObject)
+function ScrollingFrame:GetProcessInput(inputBeganObject)
 	local Start = self.Scroller.Position
 	local UpdateVelocity = self:GetVelocityTracker()
-	local OriginalPosition = InputBeganObject.Position
+	local OriginalPosition = inputBeganObject.Position
 
-	return function(InputObject)
-		local Distance = (InputObject.Position - OriginalPosition).y
+	return function(inputObject)
+		local Distance = (inputObject.Position - OriginalPosition).y
 		local Position = Start - Distance
 		self.Scroller.Position = Position
 		self.Scroller.Target = Position
@@ -387,85 +394,88 @@ function ScrollingFrame:GetProcessInput(InputBeganObject)
 	end
 end
 
-function ScrollingFrame:ScrollTo(Position, DoNotAnimate)
-	self.Scroller.Target = Position
-	if DoNotAnimate then
+function ScrollingFrame:ScrollTo(position, doNotAnimate)
+	self.Scroller.Target = position
+	if doNotAnimate then
 		self.Scroller.Position = self.Scroller.Target
 		self.Scroller.Velocity = 0
 	end
 end
 
-function ScrollingFrame:ScrollToTop(DoNotAnimate)
-	self:ScrollTo(self.Scroller.Min, DoNotAnimate)
+function ScrollingFrame:ScrollToTop(doNotAnimate)
+	self:ScrollTo(self.Scroller.Min, doNotAnimate)
 end
 
-function ScrollingFrame:ScrollToBottom(DoNotAnimate)
-	self:ScrollTo(self.Scroller.Max, DoNotAnimate)
+function ScrollingFrame:ScrollToBottom(doNotAnimate)
+	self:ScrollTo(self.Scroller.Max, doNotAnimate)
 end
 
-function ScrollingFrame:BindInput(Gui, Options)
-	local Maid = MakeMaid()
+function ScrollingFrame:BindInput(gui, Options)
+	local maid = MakeMaid()
 
-	Maid.GuiInputBegan = Gui.InputBegan:connect(function(InputObject)
-		self:InputBegan(InputObject, Options)
+	maid.GuiInputBegan = gui.InputBegan:Connect(function(inputObject)
+		self:InputBegan(inputObject, Options)
 	end)
 
-	Maid.GuiInputChanged = Gui.InputChanged:connect(function(InputObject)
-		if InputObject.UserInputType == Enum.UserInputType.MouseWheel and Gui.Active then
-			self.Scroller.Target = self.Scroller.Target + -InputObject.Position.z * 80 -- We have to be active to avoid scrolling
+	maid.GuiInputChanged = gui.InputChanged:Connect(function(inputObject)
+		if inputObject.UserInputType == Enum.UserInputType.MouseWheel and gui.Active then
+			self.Scroller.Target = self.Scroller.Target + -inputObject.Position.z * 80 -- We have to be active to avoid scrolling
 			self:FreeScroll()
 		end
 	end)
 
-	return Maid
+	return maid
 end
 
-function ScrollingFrame:InputBegan(InputBeganObject, Options)
-	if InputBeganObject.UserInputType == Enum.UserInputType.MouseButton1 or InputBeganObject.UserInputType == Enum.UserInputType.Touch then
-		local Maid = MakeMaid()
+function ScrollingFrame:InputBegan(inputBeganObject: InputObject, Options)
+	if
+		inputBeganObject.UserInputType == Enum.UserInputType.MouseButton1
+		or inputBeganObject.UserInputType == Enum.UserInputType.Touch
+	then
+		local maid = MakeMaid()
 
 		local StartTime = tick()
 		local TotalScrollDistance = 0
-		local ProcessInput = self:GetProcessInput(InputBeganObject)
+		local ProcessInput = self:GetProcessInput(inputBeganObject)
 
-		if InputBeganObject.UserInputType == Enum.UserInputType.MouseButton1 then
-			Maid.InputChanged = UserInputService.InputChanged:connect(function(InputObject, GameProcessed)
-				if InputObject.UserInputType == Enum.UserInputType.MouseMovement then
-					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(InputObject))
+		if inputBeganObject.UserInputType == Enum.UserInputType.MouseButton1 then
+			maid.InputChanged = UserInputService.InputChanged:Connect(function(inputObject, GameProcessed)
+				if inputObject.UserInputType == Enum.UserInputType.MouseMovement then
+					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(inputObject))
 				end
 			end)
-		elseif InputBeganObject.UserInputType == Enum.UserInputType.Touch then
-			local function Update(InputObject, GameProcessed)
-				if InputObject.UserInputType == Enum.UserInputType.Touch then
-					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(InputObject))
+		elseif inputBeganObject.UserInputType == Enum.UserInputType.Touch then
+			local function Update(inputObject, GameProcessed)
+				if inputObject.UserInputType == Enum.UserInputType.Touch then
+					TotalScrollDistance = TotalScrollDistance + math.abs(ProcessInput(inputObject))
 				end
 			end
 
-			Maid.InputChanged = UserInputService.InputChanged:connect(Update)
+			maid.InputChanged = UserInputService.InputChanged:Connect(Update)
 		end
 
-		Maid.Cleanup = function()
+		maid.Cleanup = function()
 			self:UpdateRender()
 			if Options and Options.OnClick then
 				local ElapsedTime = tick() - StartTime
 				local ConsideredClick = (ElapsedTime <= 0.05) or (TotalScrollDistance < 1)
 				if ConsideredClick then
-					Options.OnClick(InputBeganObject)
+					Options.OnClick(inputBeganObject)
 				end
 			end
 		end
 
-		Maid.InputEnded = UserInputService.InputEnded:connect(function(InputObject, GameProcessed)
-			if InputObject == InputBeganObject then
+		maid.InputEnded = UserInputService.InputEnded:Connect(function(inputObject, gameProcssed)
+			if inputObject == inputBeganObject then
 				self:StopDrag()
 			end
 		end)
 
-		Maid.WindowFocusReleased = UserInputService.WindowFocusReleased:connect(function()
+		maid.WindowFocusReleased = UserInputService.WindowFocusReleased:Connect(function()
 			self:StopDrag()
 		end)
 
-		self.Maid.UpdateMaid = Maid
+		self._maid.UpdateMaid = maid
 	end
 end
 
